@@ -37,8 +37,14 @@ class AdminUserResponse(BaseModel):
 
 class AdminLoginResponse(BaseModel):
     success: bool
-    data: Optional[dict] = None
-    error: Optional[dict] = None
+    data: Optional[Any] = None
+    error: Optional[Any] = None
+
+class AdminCreate(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    role: str = "admin"
 
 # User Schemas for Admin
 class UserResponse(BaseModel):
