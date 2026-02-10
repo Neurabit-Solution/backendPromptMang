@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer
 from app.core.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt_sha256", "bcrypt"], deprecated="auto")
 
 ALGORITHM = settings.ALGORITHM
 SECRET_KEY = settings.SECRET_KEY
@@ -37,6 +37,7 @@ def create_refresh_token(subject: Union[str, Any], expires_delta: Optional[timed
     to_encode = {"sub": str(subject), "exp": expire, "type": "refresh"}
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
 
 def verify_token(token: str):
     try:

@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from ..core import security, database
 from ..models import user as models
 from ..schemas import user as schemas
@@ -24,9 +26,23 @@ def generate_referral_code():
 
 @router.post("/signup", response_model=schemas.SignupResponse)
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    email = user.email.lower().strip()
+    db_user = (
+        db.query(models.User)
+        .filter(func.lower(models.User.email) == email)
+        .first()
+    )
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        return JSONResponse(
+            status_code=409,
+            content={
+                "success": False,
+                "error": {
+                    "code": "EMAIL_EXISTS",
+                    "message": "An account with this email already exists",
+                },
+            },
+        )
     
     hashed_password = security.get_password_hash(user.password)
     
@@ -36,7 +52,7 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
         referral_code = generate_referral_code()
         
     new_user = models.User(
-        email=user.email,
+        email=email,
         hashed_password=hashed_password,
         name=user.name,
         phone=user.phone,
@@ -67,18 +83,35 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=schemas.SignupResponse)
 def login(user_credentials: schemas.UserLogin, db: Session = Depends(get_db)):
-    user = db.query(models.User).filter(models.User.email == user_credentials.email).first()
+    email = user_credentials.email.lower().strip()
+    user = (
+        db.query(models.User)
+        .filter(func.lower(models.User.email) == email)
+        .first()
+    )
     
     if not user:
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            content={
+                "success": False,
+                "error": {
+                    "code": "INVALID_CREDENTIALS",
+                    "message": "Email or password is incorrect",
+                },
+            },
         )
     
     if not security.verify_password(user_credentials.password, user.hashed_password):
-        raise HTTPException(
+        return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            content={
+                "success": False,
+                "error": {
+                    "code": "INVALID_CREDENTIALS",
+                    "message": "Email or password is incorrect",
+                },
+            },
         )
         
     access_token = security.create_access_token(user.email)
