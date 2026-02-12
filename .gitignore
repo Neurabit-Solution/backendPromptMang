@@ -1,6 +1,10 @@
 # Local configuration
 config.properties
 
+docker-compose.yml
+# Dockerfile
+# .dockerignore
+
 # Python
 __pycache__/
 *.py[cod]

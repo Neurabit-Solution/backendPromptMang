@@ -14,22 +14,36 @@ class Settings:
         configs = Properties()
         config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'config.properties')
         
-        with open(config_path, 'rb') as config_file:
-            configs.load(config_file)
+        # Load file if it exists
+        if os.path.exists(config_path):
+            with open(config_path, 'rb') as config_file:
+                configs.load(config_file)
+        
+        # Helper to get config from ENV or properties file
+        def get_conf(key, default=None):
+            env_val = os.environ.get(key.upper())
+            if env_val is not None:
+                return env_val
             
+            prop_val = configs.get(key)
+            if prop_val is not None:
+                return prop_val.data
+            
+            return default
+
         # Database
-        self.DB_HOST = configs.get("db_host").data
-        self.DB_PORT = configs.get("db_port").data
-        self.DB_NAME = configs.get("db_name").data
-        self.DB_USER = configs.get("db_user").data
-        self.DB_PASSWORD = configs.get("db_password").data
+        self.DB_HOST = get_conf("db_host", "localhost")
+        self.DB_PORT = get_conf("db_port", "5432")
+        self.DB_NAME = get_conf("db_name", "magicpic")
+        self.DB_USER = get_conf("db_user", "admin")
+        self.DB_PASSWORD = get_conf("db_password", "admin@123")
         
         self.DATABASE_URL = f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
         # Security
-        self.SECRET_KEY = configs.get("secret_key").data
-        self.ALGORITHM = configs.get("algorithm").data
-        self.ACCESS_TOKEN_EXPIRE_MINUTES = int(configs.get("access_token_expire_minutes").data)
-        self.REFRESH_TOKEN_EXPIRE_DAYS = int(configs.get("refresh_token_expire_days").data)
+        self.SECRET_KEY = get_conf("secret_key", "your-super-secret-key-change-this-in-production")
+        self.ALGORITHM = get_conf("algorithm", "HS256")
+        self.ACCESS_TOKEN_EXPIRE_MINUTES = int(get_conf("access_token_expire_minutes", 30))
+        self.REFRESH_TOKEN_EXPIRE_DAYS = int(get_conf("refresh_token_expire_days", 7))
 
 settings = Settings()
