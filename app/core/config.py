@@ -1,5 +1,6 @@
 import os
 from jproperties import Properties
+from urllib.parse import quote_plus
 
 class Settings:
     _instance = None
@@ -34,11 +35,13 @@ class Settings:
         # Database
         self.DB_HOST = get_conf("db_host", "localhost")
         self.DB_PORT = get_conf("db_port", "5432")
-        self.DB_NAME = get_conf("db_name", "magicpic")
+        self.DB_NAME = get_conf("db_name", "magicpin")
         self.DB_USER = get_conf("db_user", "admin")
         self.DB_PASSWORD = get_conf("db_password", "admin@123")
         
-        self.DATABASE_URL = f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        # URL encode password to handle special characters like '@'
+        encoded_password = quote_plus(self.DB_PASSWORD)
+        self.DATABASE_URL = f"postgresql://{self.DB_USER}:{encoded_password}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
         # Security
         self.SECRET_KEY = get_conf("secret_key", "your-super-secret-key-change-this-in-production")
