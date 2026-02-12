@@ -7,42 +7,71 @@ This document provides the necessary information for frontend developers to inte
 - **Base URL**: `http://localhost:8000/api/admin`
 - **Authentication**: JWT Bearer Token
 
-## 🔑 Authentication
-
-### 1. Login
-`POST /auth/login`
-
-**Request Body:**
-```json
-{
-  "email": "admin@magicpic.app",
-  "password": "strongpassword"
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "success": true,
-  "data": {
-    "admin": {
-      "id": 1,
-      "email": "admin@magicpic.app",
-      "name": "Admin User",
-      "role": "super_admin",
-      "permissions": ["all"]
-    },
-    "access_token": "eyJhbG...",
-    "token_type": "bearer",
-    "expires_in": 3600
-  }
-}
-```
-
-**Header for Authenticated Requests:**
-`Authorization: Bearer <access_token>`
-
 ---
+ 
+ ## 🔑 Authentication
+ 
+ ### 1. Login
+ `POST /auth/login`
+ 
+ **Request Body:**
+ ```json
+ {
+   "email": "admin@magicpic.app",
+   "password": "strongpassword"
+ }
+ ```
+ 
+ **Success Response (200):**
+ ```json
+ {
+   "success": true,
+   "data": {
+     "admin": {
+       "id": 1,
+       "email": "admin@magicpic.app",
+       "name": "Admin User",
+       "role": "super_admin",
+       "permissions": ["all"]
+     },
+     "access_token": "eyJhbG...",
+     "token_type": "bearer",
+     "expires_in": 3600
+   }
+ }
+ ```
+ 
+ ### 2. Admin Signup
+ `POST /auth/register`
+ 
+ **Request Body:**
+ ```json
+ {
+   "email": "newadmin@example.com",
+   "password": "strongpassword",
+   "name": "New Admin",
+   "role": "admin"  // Optional, defaults to "admin"
+ }
+ ```
+ 
+ **Success Response (200):**
+ Same as Login response.
+ 
+ **Error Response (200 OK with success: false):**
+ ```json
+ {
+   "success": false,
+   "error": {
+     "code": "EMAIL_EXISTS",
+     "message": "Email already registered"
+   }
+ }
+ ```
+ 
+ **Header for Authenticated Requests:**
+ `Authorization: Bearer <access_token>`
+ 
+ ---
 
 ## 👥 User Management
 

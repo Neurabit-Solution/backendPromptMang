@@ -20,7 +20,16 @@ def create_access_token(subject: Union[str, Any], role: str, expires_delta: time
     return encoded_jwt
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # Truncate password to 72 bytes to prevent bcrypt limit error
+    password_bytes = plain_password.encode('utf-8')
+    if len(password_bytes) > 72:
+        plain_password = password_bytes[:72].decode('utf-8', errors='ignore')
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
+    # Truncate password to 72 bytes to prevent bcrypt limit error
+    # This is a known limitation of bcrypt
+    password_bytes = password.encode('utf-8')
+    if len(password_bytes) > 72:
+        password = password_bytes[:72].decode('utf-8', errors='ignore')
     return pwd_context.hash(password)

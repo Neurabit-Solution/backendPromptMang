@@ -51,7 +51,7 @@ def get_users(
     return {
         "success": True,
         "data": {
-            "users": users,
+            "users": [UserResponse.model_validate(u).model_dump() for u in users],
             "pagination": {
                 "page": page,
                 "limit": limit,
@@ -93,6 +93,6 @@ def create_user(
     
     return {
         "success": True,
-        "data": {"user": db_user},
+        "data": {"user": UserResponse.model_validate(db_user).model_dump()},
         "message": "User created successfully"
     }
