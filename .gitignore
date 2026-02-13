@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-docker-compose.yml
+# docker-compose.yml
 
 # C extensions
 *.so

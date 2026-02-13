@@ -1,6 +1,7 @@
 import configparser
 import os
 from typing import List
+from urllib.parse import quote_plus
 from pydantic_settings import BaseSettings
 
 # Load configuration from config.properties outside the Pydantic model
@@ -26,7 +27,9 @@ class Settings(BaseSettings):
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        user = quote_plus(self.DB_USEuvicorn app.main:app --reloadR)
+        password = quote_plus(self.DB_PASSWORD)
+        return f"postgresql://{user}:{password}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
