@@ -46,8 +46,8 @@ jobs:
 
             echo "Stopping old containers (if any)..."
 
-            docker compose -p magicpic-backend down
+            docker compose -p magicpic-admin-backend down
 
             echo "Starting new containers..."
 
-            docker compose -p magicpic-backend up -d --build
+            docker compose -p magicpic-admin-backend up -d --build
