@@ -31,6 +31,8 @@ jobs:
           script: |
             cd ~/backendPromptMang
 
+            git pull origin main 
+
             echo "Creating config.properties..."
 
             echo "DB_HOST=${{ secrets.DB_HOST }}" > config.properties
