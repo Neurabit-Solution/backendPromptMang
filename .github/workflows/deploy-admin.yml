@@ -30,25 +30,29 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/backend-admin/backendPromptMang
-
+            
+            # Optional: ensure we are on the right branch
             git pull origin admin
 
             echo "Creating config.properties..."
 
-            echo "DB_HOST=${{ secrets.DB_HOST }}" > config.properties
-            echo "DB_PORT=${{ secrets.DB_PORT }}" >> config.properties
-            echo "DB_NAME=${{ secrets.DB_NAME }}" >> config.properties
-            echo "DB_USER=${{ secrets.DB_USER }}" >> config.properties
-            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> config.properties
-            echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> config.properties
-            echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> config.properties
-            echo "ACCESS_TOKEN_EXPIRE_MINUTES=30" >> config.properties
-            echo "REFRESH_TOKEN_EXPIRE_DAYS=7" >> config.properties
+            # Create the database section
+            echo "[database]" > config.properties
+            echo "db_host = ${{ secrets.DB_HOST }}" >> config.properties
+            echo "db_port = ${{ secrets.DB_PORT }}" >> config.properties
+            echo "db_name = ${{ secrets.DB_NAME }}" >> config.properties
+            echo "db_user = ${{ secrets.DB_USER }}" >> config.properties
+            echo "db_password = ${{ secrets.DB_PASSWORD }}" >> config.properties
+
+            # Create the security section
+            echo "" >> config.properties
+            echo "[security]" >> config.properties
+            echo "secret_key = ${{ secrets.SECRET_KEY }}" >> config.properties
+            echo "algorithm = ${{ secrets.ALGORITHM }}" >> config.properties
+            echo "access_token_expire_minutes = 30" >> config.properties
 
             echo "Stopping old containers (if any)..."
-
             docker compose -p magicpic-admin-backend down
 
             echo "Starting new containers..."
-
             docker compose -p magicpic-admin-backend up -d --build
