@@ -1,4 +1,3 @@
-
 name: Deploy Prompt Backend
 
 on:
@@ -31,6 +30,8 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
             cd ~/backend-admin/backendPromptMang
+
+            git pull origin admin
 
             echo "Creating config.properties..."
 
