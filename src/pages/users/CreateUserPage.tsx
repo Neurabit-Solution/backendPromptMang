@@ -38,11 +38,18 @@ export default function CreateUserPage() {
   const createUserMutation = useMutation({
     mutationFn: usersAPI.create,
     onSuccess: (response) => {
-      toast.success('User created successfully!')
-      navigate(`/admin/users/${response.data.data.id}`)
+      if (response.data.success) {
+        toast.success('User created successfully!')
+        navigate(`/admin/users/${response.data.data.user.id}`)
+      } else {
+        toast.error(response.data.error?.message || 'Failed to create user')
+      }
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error?.message || 'Failed to create user')
+      const message = error.response?.data?.error?.message || 
+                     error.response?.data?.detail || 
+                     'Failed to create user'
+      toast.error(message)
     },
   })
 

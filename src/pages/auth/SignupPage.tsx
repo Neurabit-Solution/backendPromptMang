@@ -50,7 +50,11 @@ export default function SignupPage() {
                 toast.error(response.data.error?.message || 'Registration failed')
             }
         } catch (err: any) {
-            toast.error(err.response?.data?.error?.message || 'An error occurred during registration')
+            // Handle HTTP errors and application errors
+            const message = err.response?.data?.error?.message || 
+                           err.response?.data?.detail || 
+                           'An error occurred during registration'
+            toast.error(message)
         } finally {
             setIsLoading(false)
         }

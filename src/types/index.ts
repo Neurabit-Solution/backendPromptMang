@@ -20,12 +20,14 @@ export interface User {
 
 export interface Admin {
   id: number
+  user_id: number
   email: string
   name: string
+  avatar_url: string | null
   role: 'super_admin' | 'admin' | 'moderator'
   permissions: string[]
-  is_active: boolean
-  last_login?: string
+  created_at: string
+  last_login: string | null
 }
 
 export interface Style {
@@ -135,10 +137,12 @@ export interface DashboardStats {
 }
 
 export interface PaginationMeta {
-  total: number
-  total_pages: number
   page: number
   limit: number
+  total: number
+  total_pages: number
+  has_next: boolean
+  has_prev: boolean
 }
 
 export interface ApiResponse<T> {
@@ -152,6 +156,11 @@ export interface ApiResponse<T> {
 
 export interface PaginatedResponse<T> {
   items: T[]
+  pagination: PaginationMeta
+}
+
+export interface UserListResponse {
+  users: User[]
   pagination: PaginationMeta
 }
 

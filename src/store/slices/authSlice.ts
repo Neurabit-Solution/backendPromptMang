@@ -11,8 +11,17 @@ interface AuthState {
   error: string | null
 }
 
+const getUserFromStorage = () => {
+  try {
+    const userStr = localStorage.getItem('admin_user')
+    return userStr ? JSON.parse(userStr) : null
+  } catch (e) {
+    return null
+  }
+}
+
 const initialState: AuthState = {
-  user: JSON.parse(localStorage.getItem('admin_user') || 'null'),
+  user: getUserFromStorage(),
   token: localStorage.getItem('admin_token'),
   isAuthenticated: !!localStorage.getItem('admin_token'),
   isLoading: false,
@@ -24,15 +33,26 @@ export const login = createAsyncThunk(
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
       const response = await authAPI.login(credentials)
-      const { admin, access_token } = response.data.data
       
-      localStorage.setItem('admin_token', access_token)
-      localStorage.setItem('admin_user', JSON.stringify(admin))
-      
-      toast.success('Login successful!')
-      return { user: admin, token: access_token }
+      // Handle the documented API response structure
+      if (response.data.success) {
+        const { admin, access_token } = response.data.data
+
+        localStorage.setItem('admin_token', access_token)
+        localStorage.setItem('admin_user', JSON.stringify(admin))
+
+        toast.success('Login successful!')
+        return { user: admin, token: access_token }
+      } else {
+        // Handle application-level errors with success: false
+        const message = response.data.error?.message || 'Login failed'
+        return rejectWithValue(message)
+      }
     } catch (error: any) {
-      const message = error.response?.data?.error?.message || 'Login failed'
+      // Handle HTTP errors and other exceptions
+      const message = error.response?.data?.error?.message || 
+                     error.response?.data?.detail || 
+                     'Login failed'
       return rejectWithValue(message)
     }
   }
@@ -102,7 +122,7 @@ const authSlice = createSlice({
         state.token = null
         state.error = action.payload as string
       })
-      
+
       // Logout
       .addCase(logout.fulfilled, (state) => {
         state.isAuthenticated = false
@@ -110,7 +130,7 @@ const authSlice = createSlice({
         state.token = null
         state.error = null
       })
-      
+
       // Check Auth
       .addCase(checkAuth.pending, (state) => {
         state.isLoading = true

@@ -43,13 +43,20 @@ export default function AddCreditsPage() {
   })
 
   const addCreditsMutation = useMutation({
-    mutationFn: creditsAPI.add,
-    onSuccess: () => {
-      toast.success('Credits added successfully!')
-      navigate('/admin/credits/transactions')
+    mutationFn: creditsAPI.addCredits,
+    onSuccess: (response) => {
+      if (response.data.success) {
+        toast.success('Credits added successfully!')
+        navigate('/admin/credits/transactions')
+      } else {
+        toast.error(response.data.error?.message || 'Failed to add credits')
+      }
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.error?.message || 'Failed to add credits')
+      const message = error.response?.data?.error?.message || 
+                     error.response?.data?.detail || 
+                     'Failed to add credits'
+      toast.error(message)
     },
   })
 
@@ -119,7 +126,7 @@ export default function AddCreditsPage() {
                 />
                 {users && userSearch.length > 2 && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {users.data.data.items.map((user: any) => (
+                    {users.data.data.users.map((user: any) => (
                       <button
                         key={user.id}
                         type="button"

@@ -18,7 +18,7 @@ export default function StylesPage() {
     }),
   })
 
-  const styles = data?.data.data.items || []
+  const styles = data?.data.data.styles || []
 
   return (
     <div className="space-y-6">

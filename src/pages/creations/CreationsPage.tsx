@@ -20,7 +20,7 @@ export default function CreationsPage() {
     }),
   })
 
-  const creations = data?.data.data.items || []
+  const creations = data?.data.data.creations || []
 
   return (
     <div className="space-y-6">

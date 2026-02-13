@@ -19,7 +19,7 @@ export default function TransactionsPage() {
     }),
   })
 
-  const transactions = data?.data.data.items || []
+  const transactions = data?.data.data.transactions || []
   const pagination = data?.data.data.pagination
 
   return (

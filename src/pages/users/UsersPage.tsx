@@ -23,7 +23,7 @@ export default function UsersPage() {
     }),
   })
 
-  const users = data?.data.data.items || []
+  const users = data?.data.data.users || []
   const pagination = data?.data.data.pagination
 
   return (
