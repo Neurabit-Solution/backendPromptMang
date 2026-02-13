@@ -1,0 +1,52 @@
+name: Deploy Prompt Backend
+
+on:
+ push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "."
+          target: "~/backendPromptMang"
+
+      - name: SSH into server and deploy
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/backendPromptMang
+
+            echo "Creating config.properties..."
+
+            echo "DB_HOST=${{ secrets.DB_HOST }}" > config.properties
+            echo "DB_PORT=${{ secrets.DB_PORT }}" >> config.properties
+            echo "DB_NAME=${{ secrets.DB_NAME }}" >> config.properties
+            echo "DB_USER=${{ secrets.DB_USER }}" >> config.properties
+            echo "DB_PASSWORD=${{ secrets.DB_PASSWORD }}" >> config.properties
+            echo "SECRET_KEY=${{ secrets.SECRET_KEY }}" >> config.properties
+            echo "ALGORITHM=${{ secrets.ALGORITHM }}" >> config.properties
+            echo "ACCESS_TOKEN_EXPIRE_MINUTES=30" >> config.properties
+            echo "REFRESH_TOKEN_EXPIRE_DAYS=7" >> config.properties
+
+            echo "Stopping old containers (if any)..."
+
+            docker compose -p magicpic-backend down
+
+            echo "Starting new containers..."
+
+            docker compose -p magicpic-backend up -d --build
