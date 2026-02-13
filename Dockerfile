@@ -10,8 +10,11 @@ RUN npm install
 # Copy the rest of the application code
 COPY . .
 
+# Define build arguments for environment variables
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
 # Build the application
-# Note: VITE_ variables must be available at build time
 RUN npm run build
 
 # Production stage
