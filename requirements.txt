@@ -8,3 +8,5 @@ passlib[bcrypt]
 bcrypt==3.2.0
 python-multipart
 jproperties
+boto3
+google-genai

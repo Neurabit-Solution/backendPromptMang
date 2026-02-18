@@ -1,7 +1,7 @@
 # Local configuration
 config.properties
 
-docker-compose.yml
+# docker-compose.yml
 # Dockerfile
 # .dockerignore
 

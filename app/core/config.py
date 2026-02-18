@@ -49,4 +49,13 @@ class Settings:
         self.ACCESS_TOKEN_EXPIRE_MINUTES = int(get_conf("access_token_expire_minutes", 30))
         self.REFRESH_TOKEN_EXPIRE_DAYS = int(get_conf("refresh_token_expire_days", 7))
 
+        # AWS S3
+        self.AWS_ACCESS_KEY_ID     = get_conf("aws_access_key_id", "")
+        self.AWS_SECRET_ACCESS_KEY = get_conf("aws_secret_access_key", "")
+        self.AWS_REGION            = get_conf("aws_region", "ap-south-1")
+        self.AWS_S3_BUCKET         = get_conf("aws_s3_bucket", "magicpic-bucket")
+
+        # Gemini AI
+        self.GEMINI_API_KEY = get_conf("gemini_api_key", "")
+
 settings = Settings()
