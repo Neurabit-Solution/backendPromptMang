@@ -14,10 +14,14 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from botocore.exceptions import ClientError
 
-from app.core.s3 import _get_s3_client
+
+import logging
+import traceback
+from app.core.s3 import get_s3_client
 from app.core.config import settings
 
 router = APIRouter(prefix="/images", tags=["Images"])
+logger = logging.getLogger(__name__)
 
 # Map file extensions to MIME types
 MIME_TYPES = {
@@ -35,27 +39,27 @@ def serve_image(s3_key: str):
     """
     Proxy endpoint that fetches an image from the private S3 bucket
     and serves it directly to the client.
-
-    Usage:
-      GET /api/images/styles/thumbnails/oil-painting.png
-      GET /api/images/categories/thumbnails/anime.jpg
-      GET /api/images/creations/generated/42/abc123.jpg
     """
-    s3 = _get_s3_client()
-
     try:
+        s3 = get_s3_client()
+        
         response = s3.get_object(
             Bucket=settings.AWS_S3_BUCKET,
             Key=s3_key,
         )
     except ClientError as e:
         error_code = e.response["Error"]["Code"]
+        logger.error(f"S3 ClientError for key {s3_key}: {error_code} - {e}")
         if error_code == "NoSuchKey":
             raise HTTPException(status_code=404, detail="Image not found")
         elif error_code == "AccessDenied":
             raise HTTPException(status_code=403, detail="Access denied to image")
         else:
             raise HTTPException(status_code=500, detail=f"S3 error: {error_code}")
+    except Exception as e:
+        logger.error(f"Unexpected error serving image {s3_key}: {str(e)}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail="Internal Server Error serving image")
 
     # Read image bytes
     image_bytes = response["Body"].read()

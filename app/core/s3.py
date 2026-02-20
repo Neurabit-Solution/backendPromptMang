@@ -24,7 +24,7 @@ from botocore.exceptions import ClientError
 from app.core.config import settings
 
 
-def _get_s3_client():
+def get_s3_client():
     return boto3.client(
         "s3",
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
@@ -39,7 +39,7 @@ def upload_style_thumbnail(file_bytes: bytes, slug: str, content_type: str = "im
     S3 key: styles/thumbnails/<slug>.jpg
     Returns the public HTTPS URL.
     """
-    s3 = _get_s3_client()
+    s3 = get_s3_client()
     ext = "jpg" if "jpeg" in content_type else content_type.split("/")[-1]
     key = f"styles/thumbnails/{slug}.{ext}"
 
@@ -58,7 +58,7 @@ def upload_category_thumbnail(file_bytes: bytes, slug: str, content_type: str = 
     S3 key: categories/thumbnails/<slug>.jpg
     Returns the public HTTPS URL.
     """
-    s3 = _get_s3_client()
+    s3 = get_s3_client()
     ext = "jpg" if "jpeg" in content_type else content_type.split("/")[-1]
     key = f"categories/thumbnails/{slug}.{ext}"
 
@@ -77,7 +77,7 @@ def upload_creation_original(file_bytes: bytes, user_id: int, content_type: str 
     S3 key: creations/originals/<user_id>/<uuid>.jpg
     Returns the S3 URL.
     """
-    s3 = _get_s3_client()
+    s3 = get_s3_client()
     ext = "jpg" if "jpeg" in content_type else content_type.split("/")[-1]
     key = f"creations/originals/{user_id}/{uuid.uuid4()}.{ext}"
 
@@ -96,7 +96,7 @@ def upload_creation_generated(file_bytes: bytes, user_id: int, content_type: str
     S3 key: creations/generated/<user_id>/<uuid>.jpg
     Returns the S3 URL.
     """
-    s3 = _get_s3_client()
+    s3 = get_s3_client()
     ext = "jpg" if "jpeg" in content_type else content_type.split("/")[-1]
     key = f"creations/generated/{user_id}/{uuid.uuid4()}.{ext}"
 
@@ -136,7 +136,7 @@ def generate_presigned_url(s3_url: str, expiration: int = 3600) -> str:
     # If it's not a full URL and doesn't look like a key path, return as is (might be external URL)
     # But our system stores keys with full URLs, so this is fine.
 
-    s3 = _get_s3_client()
+    s3 = get_s3_client()
     try:
         response = s3.generate_presigned_url(
             'get_object',
