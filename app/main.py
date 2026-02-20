@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api import auth
 from app.api.styles import router as styles_router, categories_router
 from app.api.creations import router as creations_router
+from app.api.images import router as images_router
 from app.core.database import engine, Base
 
 # Import all models so SQLAlchemy registers them before create_all()
@@ -21,12 +22,7 @@ app = FastAPI(title="MagicPic Backend", version="1.0.0")
 # Allow local frontend dev server to call API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
-    # Allow any localhost port for dev tooling
-    allow_origin_regex=r"^http://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_origins=["*"],  # Allow all origins for development/testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,6 +56,7 @@ app.include_router(auth.router, prefix="/api")
 app.include_router(styles_router, prefix="/api")
 app.include_router(categories_router, prefix="/api")
 app.include_router(creations_router, prefix="/api")
+app.include_router(images_router, prefix="/api")
 
 @app.get("/")
 def read_root():

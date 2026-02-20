@@ -21,7 +21,7 @@ categories_router = APIRouter(prefix="/categories", tags=["Categories"])
 # ─── Helper ───────────────────────────────────────────────────────────────────
 
 
-from app.core.s3 import generate_presigned_url
+from app.core.s3 import get_proxy_url
 
 def _style_to_out(style: Style) -> StyleOut:
     return StyleOut(
@@ -29,14 +29,14 @@ def _style_to_out(style: Style) -> StyleOut:
         name=style.name,
         slug=style.slug,
         description=style.description,
-        preview_url=generate_presigned_url(style.preview_url),
+        preview_url=get_proxy_url(style.preview_url),
         category=CategoryOut(
             id=style.category.id,
             name=style.category.name,
             slug=style.category.slug,
             icon=style.category.icon,
             description=style.category.description,
-            preview_url=generate_presigned_url(style.category.preview_url),
+            preview_url=get_proxy_url(style.category.preview_url),
             display_order=style.category.display_order,
         ),
         uses_count=style.uses_count,
@@ -136,7 +136,7 @@ def list_categories(db: Session = Depends(get_db)):
             slug=cat.slug,
             icon=cat.icon,
             description=cat.description,
-            preview_url=generate_presigned_url(cat.preview_url),
+            preview_url=get_proxy_url(cat.preview_url),
             display_order=cat.display_order,
             styles_count=styles_count,
         ))
