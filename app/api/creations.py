@@ -44,29 +44,38 @@ def get_current_user(
 
 # ─── Helper ───────────────────────────────────────────────────────────────────
 
+
+from app.core.s3 import generate_presigned_url
+
 def _creation_to_out(creation: Creation, credits_remaining: int) -> CreationOut:
     style = creation.style
     cat = style.category
     return CreationOut(
         id=creation.id,
-        original_image_url=creation.original_image_url,
-        generated_image_url=creation.generated_image_url,
-        thumbnail_url=creation.thumbnail_url,
+        original_image_url=generate_presigned_url(creation.original_image_url),
+        generated_image_url=generate_presigned_url(creation.generated_image_url),
+        thumbnail_url=generate_presigned_url(creation.thumbnail_url),
         style=StyleOut(
             id=style.id,
             name=style.name,
             slug=style.slug,
             description=style.description,
-            preview_url=style.preview_url,
+            preview_url=generate_presigned_url(style.preview_url),
             category=CategoryOut(
                 id=cat.id,
                 name=cat.name,
                 slug=cat.slug,
                 icon=cat.icon,
                 description=cat.description,
-                preview_url=cat.preview_url,
+                preview_url=generate_presigned_url(cat.preview_url),
                 display_order=cat.display_order,
             ),
+            uses_count=style.uses_count,
+            is_trending=style.is_trending,
+            is_new=style.is_new,
+            tags=style.tags or [],
+            credits_required=style.credits_required,
+        ),
             uses_count=style.uses_count,
             is_trending=style.is_trending,
             is_new=style.is_new,
