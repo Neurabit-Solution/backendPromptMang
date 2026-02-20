@@ -154,23 +154,8 @@ def generate_presigned_url(s3_url: str, expiration: int = 3600) -> str:
 
 def get_proxy_url(s3_url: str) -> str:
     """
-    Convert an S3 URL stored in the DB into a backend proxy URL.
-    
-    Example:
-      Input:  https://bucket.s3.region.amazonaws.com/styles/thumbnails/oil-painting.png
-      Output: /api/images/styles/thumbnails/oil-painting.png
-    
-    The frontend uses this URL to fetch images through the backend,
-    which in turn fetches them from S3 using its credentials.
+    Returns the S3 URL directly.
+    Previously this converted it to a backend proxy URL, but we now
+    serve direct S3 URLs to the frontend for better performance.
     """
-    if not s3_url:
-        return ""
-    
-    # Extract the S3 key from the full URL
-    prefix = f"https://{settings.AWS_S3_BUCKET}.s3.{settings.AWS_REGION}.amazonaws.com/"
-    if s3_url.startswith(prefix):
-        key = s3_url[len(prefix):]
-    else:
-        key = s3_url  # assume it's already just the key
-    
-    return f"/api/images/{key}"
+    return s3_url or ""

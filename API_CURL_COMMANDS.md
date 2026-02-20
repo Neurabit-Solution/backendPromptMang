@@ -9,7 +9,7 @@ Here are the curl commands to test the public endpoints for Styles and Categorie
 ---
 
 ## 1. Get All Styles
-Fetches a list of all available styles with their image proxy URLs.
+Fetches a list of all available styles with their direct S3 URLs.
 
 **Local:**
 ```bash
