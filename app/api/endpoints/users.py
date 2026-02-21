@@ -12,6 +12,7 @@ import uuid
 router = APIRouter()
 
 @router.get("/", response_model=dict)
+@router.get("", response_model=dict)
 def get_users(
     db: Session = Depends(get_db),
     admin: Admin = Depends(require_permission("users.view")),
@@ -64,6 +65,7 @@ def get_users(
     }
 
 @router.post("/", response_model=dict)
+@router.post("", response_model=dict)
 def create_user(
     *,
     db: Session = Depends(get_db),
@@ -95,4 +97,68 @@ def create_user(
         "success": True,
         "data": {"user": UserResponse.model_validate(db_user).model_dump()},
         "message": "User created successfully"
+    }
+
+@router.get("/{id}", response_model=dict)
+def get_user(
+    *,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(require_permission("users.view")),
+    id: int
+) -> Any:
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    return {
+        "success": True,
+        "data": {
+            "user": UserResponse.model_validate(user).model_dump(),
+            "stats": {
+                "total_creations": 0,
+                "public_creations": 0,
+                "private_creations": 0,
+                "total_likes_received": 0,
+                "total_credits_earned": 0,
+                "total_credits_spent": 0
+            },
+            "recent_activity": {
+                "recent_creations": [],
+                "recent_transactions": [],
+                "recent_logins": []
+            }
+        }
+    }
+
+@router.delete("/{id}", response_model=dict)
+@router.delete("/{id}/", response_model=dict)
+def delete_user(
+    *,
+    db: Session = Depends(get_db),
+    admin: Admin = Depends(require_permission("users.delete")),
+    id: int
+) -> Any:
+    """
+    Deactivate (soft delete) a user.
+    """
+    user = db.query(User).filter(User.id == id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Safety: Check if target user is an admin
+    target_is_admin = db.query(Admin).filter(Admin.user_id == id).first()
+    if target_is_admin:
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete an admin user from this endpoint. Please use admin management."
+        )
+        
+    # Perform Hard Delete
+    user_email = user.email
+    db.delete(user)
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": f"User {user_email} and all their associated data have been permanently deleted."
     }

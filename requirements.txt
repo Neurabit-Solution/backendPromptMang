@@ -35,3 +35,4 @@ openpyxl==3.1.2
 
 # Utilities
 configparser==6.0.0
+boto3==1.34.34

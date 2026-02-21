@@ -57,3 +57,38 @@ class AdminActivityLog(Base):
     ip_address = Column(String(45), nullable=True)
     user_agent = Column(String, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
+
+class Category(Base):
+    __tablename__ = "categories"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), unique=True, nullable=False)
+    slug = Column(String(100), unique=True, nullable=False, index=True)
+    icon = Column(String(10), nullable=False)
+    description = Column(String(200), nullable=False)
+    preview_url = Column(String(500), nullable=True)
+    display_order = Column(Integer, default=0, index=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+    styles = relationship("Style", back_populates="category", cascade="all, delete-orphan")
+
+class Style(Base):
+    __tablename__ = "styles"
+    id = Column(Integer, primary_key=True, index=True)
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False, index=True)
+    description = Column(String(500), nullable=False)
+    preview_url = Column(String(500), nullable=False)
+    prompt_template = Column(String, nullable=False)
+    negative_prompt = Column(String, nullable=True)
+    tags = Column(JSON, default=list)
+    credits_required = Column(Integer, default=50)
+    uses_count = Column(Integer, default=0)
+    is_trending = Column(Boolean, default=False, index=True)
+    is_new = Column(Boolean, default=False)
+    is_active = Column(Boolean, default=True, index=True)
+    display_order = Column(Integer, default=0)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    category = relationship("Category", back_populates="styles")

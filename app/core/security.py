@@ -3,8 +3,13 @@ from typing import Any, Union
 from jose import jwt
 from passlib.context import CryptContext
 from app.core.config import settings
+import bcrypt
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Fix for passlib + bcrypt 4.0+ compatibility
+if not hasattr(bcrypt, "__about__"):
+    bcrypt.__about__ = type("About", (object,), {"__version__": bcrypt.__version__})
+
+pwd_context = CryptContext(schemes=["bcrypt", "bcrypt_sha256"], deprecated="auto")
 
 ALGORITHM = settings.ALGORITHM
 

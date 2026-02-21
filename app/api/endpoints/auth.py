@@ -105,7 +105,7 @@ def register(
     if admin_in.role == "super_admin":
         permissions = ["all"]
     elif admin_in.role == "admin":
-        permissions = ["users.view", "users.create", "credits.manage", "styles.manage"]
+        permissions = ["users.view", "users.create", "users.delete", "credits.manage", "styles.manage"]
     
     db_admin = Admin(
         user_id=db_user.id,

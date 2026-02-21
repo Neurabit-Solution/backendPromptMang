@@ -24,10 +24,16 @@ class Settings(BaseSettings):
     SECRET_KEY: str = _config.get("security", "secret_key", fallback="YOUR_SUPER_SECRET_KEY_CHANGE_THIS")
     ALGORITHM: str = _config.get("security", "algorithm", fallback="HS256")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(_config.get("security", "access_token_expire_minutes", fallback="30"))
+    
+    # AWS - initialized from config.properties
+    AWS_ACCESS_KEY_ID: str = _config.get("aws", "aws_access_key_id", fallback="")
+    AWS_SECRET_ACCESS_KEY: str = _config.get("aws", "aws_secret_access_key", fallback="")
+    AWS_REGION: str = _config.get("aws", "aws_region", fallback="ap-south-1")
+    AWS_S3_BUCKET: str = _config.get("aws", "aws_s3_bucket", fallback="")
 
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        user = quote_plus(self.DB_USEuvicorn app.main:app --reloadR)
+        user = quote_plus(self.DB_USER)
         password = quote_plus(self.DB_PASSWORD)
         return f"postgresql://{user}:{password}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
