@@ -4,10 +4,11 @@ from sqlalchemy.orm import Session
 import re
 
 from app.api import deps
-from app.db.session import SessionLocal
+from app.db.session import get_db
 from app.models import admin as models
 from app.schemas import admin as schemas
 from app.core.s3 import s3_service
+import time
 
 router = APIRouter()
 
@@ -31,11 +32,28 @@ def get_categories(
     categories = db.query(models.Category).offset(skip).limit(limit).all()
     return categories
 
+@router.get("/{id}", response_model=schemas.CategoryResponse)
+@router.get("/{id}/", response_model=schemas.CategoryResponse)
+def get_category(
+    *,
+    db: Session = Depends(get_db),
+    admin: models.Admin = Depends(deps.get_current_admin),
+    id: int,
+) -> Any:
+    """
+    Get category by ID.
+    """
+    category = db.query(models.Category).filter(models.Category.id == id).first()
+    if not category:
+        raise HTTPException(status_code=404, detail="Category not found")
+    return category
+
 @router.post("/", response_model=schemas.CategoryResponse)
 @router.post("", response_model=schemas.CategoryResponse)
 async def create_category(
     *,
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(get_db),
+    admin: models.Admin = Depends(deps.require_permission("categories.manage")),
     name: str = Form(...),
     icon: str = Form(...),
     description: str = Form(...),
@@ -76,7 +94,7 @@ async def create_category(
         description=description,
         display_order=display_order,
         is_active=is_active,
-        preview_url=preview_url
+        preview_url=f"{preview_url}?v={int(time.time())}" if preview_url else None
     )
     db.add(db_obj)
     db.commit()
@@ -84,9 +102,11 @@ async def create_category(
     return db_obj
 
 @router.put("/{id}", response_model=schemas.CategoryResponse)
+@router.put("/{id}/", response_model=schemas.CategoryResponse)
 async def update_category(
     *,
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(get_db),
+    admin: models.Admin = Depends(deps.require_permission("categories.manage")),
     id: int,
     name: Optional[str] = Form(None),
     icon: Optional[str] = Form(None),
@@ -125,7 +145,7 @@ async def update_category(
                 status_code=500,
                 detail="Failed to upload category preview image to S3.",
             )
-        db_obj.preview_url = preview_url
+        db_obj.preview_url = f"{preview_url}?v={int(time.time())}"
 
     db.add(db_obj)
     db.commit()
@@ -133,9 +153,11 @@ async def update_category(
     return db_obj
 
 @router.delete("/{id}")
+@router.delete("/{id}/")
 def delete_category(
     *,
-    db: Session = Depends(deps.get_db),
+    db: Session = Depends(get_db),
+    admin: models.Admin = Depends(deps.require_permission("categories.manage")),
     id: int,
 ) -> Any:
     """
