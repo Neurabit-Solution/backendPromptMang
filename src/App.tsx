@@ -16,6 +16,7 @@ import CreditStatsPage from './pages/credits/StatsPage'
 import StylesPage from './pages/styles/StylesPage'
 import StyleDetailPage from './pages/styles/StyleDetailPage'
 import CreateStylePage from './pages/styles/CreateStylePage'
+import CategoriesPage from './pages/styles/CategoriesPage'
 import CreationsPage from './pages/creations/CreationsPage'
 import CreationDetailPage from './pages/creations/CreationDetailPage'
 import AnalyticsPage from './pages/analytics/AnalyticsPage'
@@ -68,6 +69,7 @@ function App() {
                 {/* Styles */}
                 <Route path="styles" element={<StylesPage />} />
                 <Route path="styles/create" element={<CreateStylePage />} />
+                <Route path="styles/categories" element={<CategoriesPage />} />
                 <Route path="styles/:id" element={<StyleDetailPage />} />
 
                 {/* Creations */}

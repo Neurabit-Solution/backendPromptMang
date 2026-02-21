@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useDispatch, useSelector } from 'react-redux'
-import { Link, Navigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { RootState, AppDispatch } from '@/store'
 import { clearError } from '@/store/slices/authSlice'
@@ -22,6 +22,7 @@ type SignupFormData = z.infer<typeof signupSchema>
 export default function SignupPage() {
     const dispatch = useDispatch<AppDispatch>()
     const { isAuthenticated, error } = useSelector((state: RootState) => state.auth)
+    const navigate = useNavigate()
     const [showPassword, setShowPassword] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
 
@@ -46,14 +47,17 @@ export default function SignupPage() {
             const response = await authAPI.register(data)
             if (response.data.success) {
                 toast.success('Registration successful! Please login.')
+                setTimeout(() => {
+                    navigate('/admin/login')
+                }, 1500)
             } else {
                 toast.error(response.data.error?.message || 'Registration failed')
             }
         } catch (err: any) {
             // Handle HTTP errors and application errors
-            const message = err.response?.data?.error?.message || 
-                           err.response?.data?.detail || 
-                           'An error occurred during registration'
+            const message = err.response?.data?.error?.message ||
+                err.response?.data?.detail ||
+                'An error occurred during registration'
             toast.error(message)
         } finally {
             setIsLoading(false)

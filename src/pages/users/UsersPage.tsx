@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Plus, Search, Filter, Download, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react'
 import { usersAPI } from '@/lib/api'
 import { formatDate, formatCredits, getInitials } from '@/lib/utils'
 import type { User } from '@/types'
+import toast from 'react-hot-toast'
 
 export default function UsersPage() {
   const [page, setPage] = useState(1)
@@ -14,6 +15,8 @@ export default function UsersPage() {
     is_active: undefined as boolean | undefined,
   })
 
+  const queryClient = useQueryClient()
+
   const { data, isLoading } = useQuery({
     queryKey: ['users', page, search, filters],
     queryFn: () => usersAPI.list({
@@ -22,6 +25,27 @@ export default function UsersPage() {
       ...filters,
     }),
   })
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: number) => usersAPI.delete(id),
+    onSuccess: (response) => {
+      if (response.data.success) {
+        toast.success(response.data.message || 'User deactivated successfully')
+        queryClient.invalidateQueries({ queryKey: ['users'] })
+      } else {
+        toast.error(response.data.error?.message || 'Failed to deactivate user')
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to deactivate user')
+    },
+  })
+
+  const handleDelete = (user: User) => {
+    if (window.confirm(`Are you sure you want to deactivate ${user.name}?`)) {
+      deleteUserMutation.mutate(user.id)
+    }
+  }
 
   const users = data?.data.data.users || []
   const pagination = data?.data.data.pagination
@@ -157,18 +181,16 @@ export default function UsersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col space-y-1">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            user.is_verified 
-                              ? 'bg-green-100 text-green-800' 
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.is_verified
+                              ? 'bg-green-100 text-green-800'
                               : 'bg-yellow-100 text-yellow-800'
-                          }`}>
+                            }`}>
                             {user.is_verified ? 'Verified' : 'Unverified'}
                           </span>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            user.is_active 
-                              ? 'bg-green-100 text-green-800' 
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${user.is_active
+                              ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
-                          }`}>
+                            }`}>
                             {user.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </div>
@@ -187,7 +209,11 @@ export default function UsersPage() {
                           <button className="text-gray-400 hover:text-gray-600">
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button className="text-red-400 hover:text-red-600">
+                          <button
+                            className="text-red-400 hover:text-red-600 disabled:opacity-50"
+                            onClick={() => handleDelete(user)}
+                            disabled={deleteUserMutation.isPending}
+                          >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>

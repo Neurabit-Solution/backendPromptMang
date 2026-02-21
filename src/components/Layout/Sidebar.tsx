@@ -1,13 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
-import { 
-  LayoutDashboard, 
-  Users, 
-  CreditCard, 
-  Palette, 
-  Image, 
-  BarChart3, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  Palette,
+  Image,
+  BarChart3,
+  Settings,
   UserCog,
   ChevronLeft,
   ChevronRight
@@ -48,6 +48,7 @@ const menuItems = [
     subItems: [
       { title: 'All Styles', path: '/admin/styles' },
       { title: 'Create Style', path: '/admin/styles/create' },
+      { title: 'Categories', path: '/admin/styles/categories' },
     ],
   },
   {
@@ -108,9 +109,9 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="p-4 space-y-2">
         {menuItems.map((item) => {
-          const isActive = location.pathname === item.path || 
+          const isActive = location.pathname === item.path ||
             (item.subItems && item.subItems.some(sub => location.pathname === sub.path))
-          
+
           return (
             <div key={item.path}>
               <Link
@@ -127,7 +128,7 @@ export default function Sidebar() {
                   <span className="ml-3">{item.title}</span>
                 )}
               </Link>
-              
+
               {/* Sub Items */}
               {!sidebarCollapsed && item.subItems && isActive && (
                 <div className="ml-8 mt-2 space-y-1">

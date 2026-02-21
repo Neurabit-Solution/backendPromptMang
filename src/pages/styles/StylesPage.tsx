@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Plus, Search, Grid, List } from 'lucide-react'
+import { Plus, Search, Grid, List, Palette } from 'lucide-react'
 import { stylesAPI } from '@/lib/api'
 import { formatNumber } from '@/lib/utils'
 
@@ -18,7 +18,8 @@ export default function StylesPage() {
     }),
   })
 
-  const styles = data?.data.data.styles || []
+  // Check if data is an array (direct response) or nested in data.data.styles
+  const styles = Array.isArray(data?.data) ? data?.data : (data?.data?.data?.styles || [])
 
   return (
     <div className="space-y-6">
@@ -74,44 +75,85 @@ export default function StylesPage() {
       ) : (
         <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
           {styles.map((style: any) => (
-            <div key={style.id} className="card p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{style.name}</h3>
-                  <p className="text-sm text-gray-500">{style.category_name}</p>
+            <div key={style.id} className="group card overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-gray-100 hover:border-primary-200">
+              <div className="relative aspect-[4/3] overflow-hidden bg-gray-100">
+                {style.preview_url ? (
+                  <img
+                    src={style.preview_url}
+                    alt={style.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <Palette className="h-10 w-10 opacity-20" />
+                  </div>
+                )}
+
+                {/* Overlay with tags */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                  <div className="flex flex-wrap gap-1">
+                    {style.tags?.map((tag: string) => (
+                      <span key={tag} className="px-2 py-0.5 text-[10px] uppercase font-bold bg-white/20 backdrop-blur-md text-white rounded">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex space-x-1">
+
+                <div className="absolute top-3 right-3 flex flex-col gap-2">
                   {style.is_trending && (
-                    <span className="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                    <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-orange-500 text-white rounded-full shadow-lg border border-orange-400/50 backdrop-blur-sm">
                       Trending
                     </span>
                   )}
                   {style.is_new && (
-                    <span className="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
+                    <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-emerald-500 text-white rounded-full shadow-lg border border-emerald-400/50 backdrop-blur-sm">
                       New
                     </span>
                   )}
                 </div>
               </div>
-              
-              <p className="text-sm text-gray-600 mb-4 line-clamp-2">{style.description}</p>
-              
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">
-                  {formatNumber(style.usage_count)} uses
-                </span>
-                <span className="font-medium text-primary-600">
-                  {style.credits_required} credits
-                </span>
-              </div>
-              
-              <div className="mt-4 flex justify-end">
-                <Link
-                  to={`/admin/styles/${style.id}`}
-                  className="text-primary-600 hover:text-primary-800 text-sm font-medium"
-                >
-                  View Details →
-                </Link>
+
+              <div className="p-5 flex-1 flex flex-col">
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+                      {style.name}
+                    </h3>
+                    <span className={`h-2 w-2 rounded-full ${style.is_active ? 'bg-green-500' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`}></span>
+                  </div>
+                  <p className="text-xs font-medium text-primary-500 uppercase tracking-wide">
+                    Category ID: {style.category_id}
+                  </p>
+                </div>
+
+                <p className="text-sm text-gray-500 mb-5 line-clamp-2 italic leading-relaxed">
+                  "{style.description}"
+                </p>
+
+                <div className="mt-auto flex items-center justify-between bg-gray-50/80 rounded-xl p-3 border border-gray-100 group-hover:bg-white group-hover:border-primary-100 transition-colors">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-tight">Requirement</span>
+                    <span className="text-sm font-extrabold text-gray-900">
+                      {style.credits_required} Credits
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-tight">Popularity</span>
+                    <span className="text-sm font-extrabold text-primary-600 uppercase">
+                      {formatNumber(style.uses_count || 0)} Uses
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-4">
+                  <Link
+                    to={`/admin/styles/${style.id}`}
+                    className="w-full flex items-center justify-center py-2.5 rounded-xl bg-gray-900 text-white text-xs font-bold uppercase tracking-widest hover:bg-primary-600 transition-all duration-300 shadow-lg shadow-gray-200 hover:shadow-primary-200"
+                  >
+                    Manage Style
+                  </Link>
+                </div>
               </div>
             </div>
           ))}

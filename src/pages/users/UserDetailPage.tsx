@@ -1,18 +1,43 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, CreditCard, User, Activity, Settings } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ArrowLeft, CreditCard, User, Activity, Settings, Trash2 } from 'lucide-react'
 import { usersAPI } from '@/lib/api'
 import { formatDate, formatCredits, getInitials } from '@/lib/utils'
+import toast from 'react-hot-toast'
 
 export default function UserDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+
+  const queryClient = useQueryClient()
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['user', id],
     queryFn: () => usersAPI.get(Number(id)),
     enabled: !!id,
   })
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: number) => usersAPI.delete(id),
+    onSuccess: (response) => {
+      if (response.data.success) {
+        toast.success(response.data.message || 'User deactivated successfully')
+        queryClient.invalidateQueries({ queryKey: ['users'] })
+        navigate('/admin/users')
+      } else {
+        toast.error(response.data.error?.message || 'Failed to deactivate user')
+      }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.detail || 'Failed to deactivate user')
+    },
+  })
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to deactivate this user?')) {
+      deleteUserMutation.mutate(Number(id))
+    }
+  }
 
   if (isLoading) {
     return (
@@ -68,22 +93,20 @@ export default function UserDetailPage() {
                 <span className="text-sm text-gray-600">Credits</span>
                 <span className="font-semibold">{formatCredits(userData.credits)}</span>
               </div>
-              
+
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-600">Status</span>
                 <div className="flex space-x-2">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    userData.is_verified 
-                      ? 'bg-green-100 text-green-800' 
+                  <span className={`px-2 py-1 text-xs rounded-full ${userData.is_verified
+                      ? 'bg-green-100 text-green-800'
                       : 'bg-yellow-100 text-yellow-800'
-                  }`}>
+                    }`}>
                     {userData.is_verified ? 'Verified' : 'Unverified'}
                   </span>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    userData.is_active 
-                      ? 'bg-green-100 text-green-800' 
+                  <span className={`px-2 py-1 text-xs rounded-full ${userData.is_active
+                      ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
-                  }`}>
+                    }`}>
                     {userData.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
@@ -110,6 +133,14 @@ export default function UserDetailPage() {
               <button className="w-full btn-secondary">
                 <Settings className="h-4 w-4 mr-2" />
                 Edit User
+              </button>
+              <button
+                className="w-full flex items-center justify-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                onClick={handleDelete}
+                disabled={deleteUserMutation.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {deleteUserMutation.isPending ? 'Deactivating...' : 'Deactivate User'}
               </button>
             </div>
           </div>
