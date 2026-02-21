@@ -51,6 +51,14 @@ jobs:
             echo "algorithm = ${{ secrets.ALGORITHM }}" >> config.properties
             echo "access_token_expire_minutes = 30" >> config.properties
 
+            # Create the AWS section
+            echo "" >> config.properties
+            echo "[aws]" >> config.properties
+            echo "aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID }}" >> config.properties
+            echo "aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> config.properties
+            echo "aws_region = ${{ secrets.AWS_REGION }}" >> config.properties
+            echo "aws_s3_bucket = ${{ secrets.AWS_S3_BUCKET }}" >> config.properties
+
             echo "Stopping old containers (if any)..."
             docker compose -p magicpic-admin-backend down
 
