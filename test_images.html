@@ -142,14 +142,16 @@
     <div id="grid" class="grid"></div>
 
     <script>
-        const API_BASE = 'http://35.154.148.0:8000';
+        const API_BASE = 'http://localhost:8000';
         const statusEl = document.getElementById('status');
         const gridEl = document.getElementById('grid');
         const tokenInput = document.getElementById('token');
 
         const getImageUrl = (path) => {
             if (!path) return '';
+            // If it's a full S3 URL or external URL, return as is
             if (path.startsWith('http')) return path;
+            // Otherwise prepend API_BASE (fallback for any remaining relative paths)
             return `${API_BASE}${path}`;
         };
 
@@ -193,7 +195,7 @@
                 if (json.data && Array.isArray(json.data)) {
                     data = json.data;
                 } else if (Array.isArray(json)) {
-                    data = json; // Handle direct list responses if any
+                    data = json;
                 }
 
                 if (data.length === 0) {
@@ -202,7 +204,7 @@
                 }
 
                 showStatus(`Loaded ${data.length} items from ${label}`, 'info');
-                renderItems(data);
+                renderItems(data, label === 'My Creations');
 
             } catch (error) {
                 console.error('Fetch error:', error);
@@ -210,16 +212,37 @@
             }
         }
 
-        function renderItems(items) {
+        function renderItems(items, isCreations = false) {
             gridEl.innerHTML = items.map(item => {
-                // Determine which field holds the image
-                // Styles/Categories -> preview_url
-                // Creations -> generated_image_url OR original_image_url
-                let rawUrl = item.preview_url || item.generated_image_url || item.original_image_url;
-                let imageUrl = getImageUrl(rawUrl);
+                if (isCreations) {
+                    const originalUrl = getImageUrl(item.original_image_url);
+                    const generatedUrl = getImageUrl(item.generated_image_url);
+                    const title = item.style ? item.style.name : 'Creation';
 
-                let title = item.name || (item.style ? item.style.name : 'Creation');
-                let subtitle = item.category ? item.category.name : (item.id ? `ID: ${item.id}` : '');
+                    return `
+                        <div class="card" style="grid-column: span 2; display: flex;">
+                            <div style="flex: 1;">
+                                <img src="${originalUrl}" alt="Original" onerror="this.style.opacity=0.3;">
+                                <div style="text-align: center; font-size: 0.8rem; color: #888;">Original</div>
+                            </div>
+                            <div style="flex: 1; border-left: 1px solid #eee;">
+                                <img src="${generatedUrl}" alt="Generated" onerror="this.style.opacity=0.3;">
+                                <div style="text-align: center; font-size: 0.8rem; color: #888;">Generated</div>
+                            </div>
+                            <div class="card-body" style="width: 200px;">
+                                <h3 class="card-title">${title}</h3>
+                                <div class="card-meta">ID: ${item.id}</div>
+                                <div class="card-meta">Time: ${item.processing_time}s</div>
+                                <div class="url_debug">Direct: ${item.generated_image_url ? item.generated_image_url.substring(0, 40) + '...' : 'None'}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                let rawUrl = item.preview_url || item.icon; // Icon might be emoji or URL
+                let imageUrl = getImageUrl(rawUrl);
+                let title = item.name;
+                let subtitle = item.category ? item.category.name : `Slug: ${item.slug}`;
 
                 return `
                     <div class="card">
@@ -229,7 +252,7 @@
                         <div class="card-body">
                             <h3 class="card-title">${title}</h3>
                             <div class="card-meta">${subtitle}</div>
-                            <div class="url_debug">Proxy: ${rawUrl || 'None'}</div>
+                            <div class="url_debug">Direct: ${rawUrl ? rawUrl.substring(0, 40) + '...' : 'None'}</div>
                         </div>
                     </div>
                 `;

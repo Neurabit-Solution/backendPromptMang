@@ -101,128 +101,134 @@ async def generate_image(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """
-    Main image generation endpoint.
-
-    Flow:
-    1. Validate image type & size
-    2. Check user has enough credits
-    3. Fetch style + its prompt template from DB
-    4. Upload original image to S3  (creations/originals/<user_id>/<uuid>.jpg)
-    5. Build final prompt  (template + user options)
-    6. Call Gemini API with image + prompt
-    7. Upload generated image to S3  (creations/generated/<user_id>/<uuid>.jpg)
-    8. Save Creation record to DB
-    9. Deduct credits from user
-    10. Return result
-    """
-
-    # ── 1. Validate image ──────────────────────────────────────────────────
-    if image.content_type not in ALLOWED_MIME_TYPES:
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "error": {"code": "INVALID_IMAGE", "message": "Only JPG, PNG, and WebP images are supported."}},
-        )
-
-    image_bytes = await image.read()
-    if len(image_bytes) > MAX_FILE_SIZE_BYTES:
-        return JSONResponse(
-            status_code=413,
-            content={"success": False, "error": {"code": "IMAGE_TOO_LARGE", "message": "Image must be under 10 MB."}},
-        )
-
-    # ── 2. Check credits ───────────────────────────────────────────────────
-    style = (
-        db.query(Style)
-        .options(joinedload(Style.category))
-        .filter(Style.id == style_id, Style.is_active == True)
-        .first()
-    )
-    if not style:
-        return JSONResponse(
-            status_code=404,
-            content={"success": False, "error": {"code": "STYLE_NOT_FOUND", "message": "Style not found."}},
-        )
-
-    if current_user.credits < style.credits_required:
-        return JSONResponse(
-            status_code=402,
-            content={
-                "success": False,
-                "error": {
-                    "code": "INSUFFICIENT_CREDITS",
-                    "message": f"You need {style.credits_required} credits. You have {current_user.credits}.",
-                },
-            },
-        )
-
-    # ── 3. Upload original image to S3 ─────────────────────────────────────
-    original_url = s3_service.upload_creation_original(
-        file_bytes=image_bytes,
-        user_id=current_user.id,
-        content_type=image.content_type,
-    )
-
-    # ── 4. Build final prompt ──────────────────────────────────────────────
-    final_prompt = gemini_service.build_final_prompt(
-        prompt_template=style.prompt_template,
-        mood=mood,
-        weather=weather,
-        dress_style=dress_style,
-        custom_prompt=custom_prompt,
-    )
-
-    # ── 5. Call Gemini ─────────────────────────────────────────────────────
     try:
-        generated_bytes, processing_time = gemini_service.transform_image(
-            image_bytes=image_bytes,
-            image_mime=image.content_type,
-            prompt=final_prompt,
+        # ── 1. Validate image ──────────────────────────────────────────────────
+        if image.content_type not in ALLOWED_MIME_TYPES:
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "error": {"code": "INVALID_IMAGE", "message": "Only JPG, PNG, and WebP images are supported."}},
+            )
+
+        image_bytes = await image.read()
+        if len(image_bytes) > MAX_FILE_SIZE_BYTES:
+            return JSONResponse(
+                status_code=413,
+                content={"success": False, "error": {"code": "IMAGE_TOO_LARGE", "message": "Image must be under 10 MB."}},
+            )
+
+        # ── 2. Check credits ───────────────────────────────────────────────────
+        style = (
+            db.query(Style)
+            .options(joinedload(Style.category))
+            .filter(Style.id == style_id, Style.is_active == True)
+            .first()
+        )
+        if not style:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "error": {"code": "STYLE_NOT_FOUND", "message": "Style not found."}},
+            )
+
+        if current_user.credits < style.credits_required:
+            return JSONResponse(
+                status_code=402,
+                content={
+                    "success": False,
+                    "error": {
+                        "code": "INSUFFICIENT_CREDITS",
+                        "message": f"You need {style.credits_required} credits. You have {current_user.credits}.",
+                    },
+                },
+            )
+
+        # ── 3. Upload original image to S3 ─────────────────────────────────────
+        try:
+            original_url = s3_service.upload_creation_original(
+                file_bytes=image_bytes,
+                user_id=current_user.id,
+                content_type=image.content_type,
+            )
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "error": {"code": "S3_UPLOAD_ERROR", "message": f"Failed to upload original image: {str(e)}"}},
+            )
+
+        # ── 4. Build final prompt ──────────────────────────────────────────────
+        final_prompt = gemini_service.build_final_prompt(
+            prompt_template=style.prompt_template,
+            mood=mood,
+            weather=weather,
+            dress_style=dress_style,
+            custom_prompt=custom_prompt,
+        )
+
+        # ── 5. Call Gemini ─────────────────────────────────────────────────────
+        try:
+            generated_bytes, processing_time = gemini_service.transform_image(
+                image_bytes=image_bytes,
+                image_mime=image.content_type,
+                prompt=final_prompt,
+            )
+        except Exception as e:
+            return JSONResponse(
+                status_code=503,
+                content={"success": False, "error": {"code": "AI_SERVICE_ERROR", "message": f"AI generation failed: {str(e)}"}},
+            )
+
+        # ── 6. Upload generated image to S3 ───────────────────────────────────
+        try:
+            generated_url = s3_service.upload_creation_generated(
+                file_bytes=generated_bytes,
+                user_id=current_user.id,
+                content_type="image/jpeg",
+            )
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"success": False, "error": {"code": "S3_UPLOAD_ERROR", "message": f"Failed to upload generated image: {str(e)}"}},
+            )
+
+        # ── 7. Save Creation record ────────────────────────────────────────────
+        creation = Creation(
+            user_id=current_user.id,
+            style_id=style.id,
+            original_image_url=original_url,
+            generated_image_url=generated_url,
+            thumbnail_url=generated_url,   # same URL; resize separately if needed
+            mood=mood,
+            weather=weather,
+            dress_style=dress_style,
+            custom_prompt=custom_prompt,
+            prompt_used=final_prompt,
+            credits_used=style.credits_required,
+            processing_time=processing_time,
+            is_public=is_public,
+        )
+        db.add(creation)
+
+        # ── 8. Deduct credits & increment style usage ──────────────────────────
+        # Ensure user is attached to this session
+        current_user = db.merge(current_user)
+        current_user.credits -= style.credits_required
+        style.uses_count += 1
+
+        db.commit()
+        db.refresh(creation)
+        db.refresh(current_user)
+
+        return GenerateResponse(
+            success=True,
+            data=_creation_to_out(creation, credits_remaining=current_user.credits),
+            message="Image generated successfully!",
         )
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         return JSONResponse(
-            status_code=503,
-            content={"success": False, "error": {"code": "AI_SERVICE_ERROR", "message": f"AI generation failed: {str(e)}"}},
+            status_code=500,
+            content={"success": False, "error": {"code": "INTERNAL_SERVER_ERROR", "message": str(e)}},
         )
-
-    # ── 6. Upload generated image to S3 ───────────────────────────────────
-    generated_url = s3_service.upload_creation_generated(
-        file_bytes=generated_bytes,
-        user_id=current_user.id,
-        content_type="image/jpeg",
-    )
-
-    # ── 7. Save Creation record ────────────────────────────────────────────
-    creation = Creation(
-        user_id=current_user.id,
-        style_id=style.id,
-        original_image_url=original_url,
-        generated_image_url=generated_url,
-        thumbnail_url=generated_url,   # same URL; resize separately if needed
-        mood=mood,
-        weather=weather,
-        dress_style=dress_style,
-        custom_prompt=custom_prompt,
-        prompt_used=final_prompt,
-        credits_used=style.credits_required,
-        processing_time=processing_time,
-        is_public=is_public,
-    )
-    db.add(creation)
-
-    # ── 8. Deduct credits & increment style usage ──────────────────────────
-    current_user.credits -= style.credits_required
-    style.uses_count += 1
-
-    db.commit()
-    db.refresh(creation)
-    db.refresh(current_user)
-
-    return GenerateResponse(
-        success=True,
-        data=_creation_to_out(creation, credits_remaining=current_user.credits),
-        message="Image generated successfully!",
-    )
 
 
 # ─── My Creations ─────────────────────────────────────────────────────────────

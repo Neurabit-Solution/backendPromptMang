@@ -18,6 +18,11 @@ def _get_client() -> genai.Client:
     return genai.Client(api_key=settings.GEMINI_API_KEY)
 
 
+# Gemini Image Generation candidates prioritized by user request.
+# These models support image-to-image transformation via the IMAGE response modality.
+
+
+
 def transform_image(
     image_bytes: bytes,
     image_mime: str,
@@ -25,40 +30,56 @@ def transform_image(
 ) -> tuple[bytes, float]:
     """
     Send image + prompt to Gemini and return (generated_image_bytes, processing_time_seconds).
-
-    Parameters
-    ----------
-    image_bytes : raw bytes of the user's uploaded photo
-    image_mime  : MIME type, e.g. "image/jpeg" or "image/png"
-    prompt      : the fully-assembled style prompt
-
-    Returns
-    -------
-    (image_bytes, seconds_taken)
+    Tries multiple models in order of capability.
     """
     client = _get_client()
+    
+    # Priority order as requested by user + available models found in account
+    candidates = [
+        "models/gemini-2.5-flash-image",
+        "models/gemini-3-pro-image-preview",
+        "models/gemini-2.0-flash-exp-image-generation",
+    ]
 
+    errors = []
     start = time.time()
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash-preview-image-generation",
-        contents=[
-            types.Part.from_text(text=prompt),
-            types.Part.from_bytes(data=image_bytes, mime_type=image_mime),
-        ],
-        config=types.GenerateContentConfig(
-            response_modalities=["IMAGE", "TEXT"],
-        ),
-    )
+    for model_name in candidates:
+        try:
+            print(f"Attempting image generation with model: {model_name}")
+            response = client.models.generate_content(
+                model=model_name,
+                contents=[
+                    types.Part.from_text(text=prompt),
+                    types.Part.from_bytes(data=image_bytes, mime_type=image_mime),
+                ],
+                config=types.GenerateContentConfig(
+                    response_modalities=["IMAGE"],
+                ),
+            )
+            
+            elapsed = round(time.time() - start, 2)
 
-    elapsed = round(time.time() - start, 2)
+            # Extract the image bytes from the response
+            if response.candidates and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data and part.inline_data.mime_type and part.inline_data.mime_type.startswith("image/"):
+                        print(f"Success with {model_name} in {elapsed}s")
+                        return base64.b64decode(part.inline_data.data), elapsed
+            
+            error_msg = f"Model {model_name} did not return an image content part."
+            print(error_msg)
+            errors.append(error_msg)
+            
+        except Exception as e:
+            error_msg = f"{model_name} failed: {str(e)}"
+            print(error_msg)
+            errors.append(error_msg)
+            continue
 
-    # Extract the image bytes from the response
-    for part in response.candidates[0].content.parts:
-        if part.inline_data and part.inline_data.mime_type.startswith("image/"):
-            return base64.b64decode(part.inline_data.data), elapsed
-
-    raise ValueError("Gemini did not return an image in its response.")
+    # Join all errors to help debugging
+    detailed_error = " | ".join(errors)
+    raise ValueError(f"AI generation failed for all models. Details: {detailed_error}")
 
 
 def build_final_prompt(

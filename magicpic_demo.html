@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagicPic | AI Image Generation</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8B5CF6;
+            --primary-hover: #7C3AED;
+            --bg: #0F172A;
+            --card-bg: #1E293B;
+            --text-main: #F8FAFC;
+            --text-dim: #94A3B8;
+            --accent: #F43F5E;
+            --glass: rgba(255, 255, 255, 0.05);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- Transitions --- */
+        .page-view {
+            display: none;
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .active {
+            display: block;
+        }
+
+        /* --- Sidebar / Header --- */
+        header {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.5rem;
+            background: linear-gradient(45deg, var(--primary), #EC4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            cursor: pointer;
+        }
+
+        .user-nav {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .credits-badge {
+            background: rgba(139, 92, 246, 0.2);
+            border: 1px solid var(--primary);
+            padding: 0.4rem 1rem;
+            border-radius: 99px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* --- Buttons & Inputs --- */
+        .btn {
+            padding: 0.8rem 1.5rem;
+            border-radius: 12px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.39);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+        }
+
+        .btn-outline:hover {
+            background: var(--glass);
+        }
+
+        input {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+        }
+
+        /* --- Auth View --- */
+        .auth-container {
+            max-width: 400px;
+            margin: 5rem auto;
+            background: var(--card-bg);
+            padding: 2.5rem;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+
+        .auth-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .auth-subtitle {
+            color: var(--text-dim);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        /* --- Style Grid --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .style-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .style-card:hover {
+            transform: scale(1.02);
+            border-color: var(--primary);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        .style-img {
+            width: 100%;
+            height: 350px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .style-info {
+            padding: 1.25rem;
+            background: linear-gradient(to top, var(--card-bg), transparent);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .style-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .style-desc {
+            font-size: 0.9rem;
+            color: var(--text-dim);
+            line-height: 1.4;
+        }
+
+        .style-badge {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--primary);
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        /* --- Modal --- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 600px;
+            border-radius: 24px;
+            padding: 2.5rem;
+            border: 1px solid var(--border);
+            position: relative;
+            animation: modalIn 0.3s ease-out;
+        }
+
+        @keyframes modalIn {
+            from {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            cursor: pointer;
+            color: var(--text-dim);
+            font-size: 1.5rem;
+        }
+
+        /* --- Generation Flow --- */
+        .dropzone {
+            border: 2px dashed var(--border);
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .dropzone:hover {
+            border-color: var(--primary);
+            background: var(--glass);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .preview-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .preview-box {
+            background: #000;
+            border-radius: 12px;
+            aspect-ratio: 1;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .preview-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        /* --- Creations View --- */
+        .creation-card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            border: 1px solid var(--border);
+        }
+
+        .creation-imgs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            height: 180px;
+        }
+
+        .creation-imgs img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        /* --- Loading Spinner --- */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--glass);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        #status-toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            background: var(--primary);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            transform: translateY(100px);
+            transition: transform 0.3s;
+            z-index: 2000;
+        }
+
+        #status-toast.show {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+
+    <header id="main-header" style="display: none;">
+        <div class="logo" onclick="showPage('explorer')">MagicPic</div>
+        <div class="user-nav">
+            <span class="credits-badge"><span id="user-credits">0</span> Credits</span>
+            <button class="btn btn-outline" onclick="showPage('creations')">My History</button>
+            <button class="btn btn-outline" onclick="logout()">Logout</button>
+        </div>
+    </header>
+
+    <div id="status-toast"></div>
+
+    <!-- AUTH PAGE -->
+    <div id="page-auth" class="page-view active">
+        <div class="auth-container">
+            <h1 class="auth-title">MagicPic</h1>
+            <p class="auth-subtitle">Turn your photos into art</p>
+
+            <div id="auth-form-signup">
+                <input type="text" id="reg-name" placeholder="Full Name">
+                <input type="email" id="reg-email" placeholder="Email Address">
+                <input type="password" id="reg-password" placeholder="Password (min 8 chars)">
+                <button class="btn btn-primary" style="width: 100%" onclick="signup()">Create Account</button>
+                <p style="text-align: center; margin-top: 1.5rem; color: var(--text-dim); font-size: 0.9rem;">
+                    Already have an account? <a href="#" style="color: var(--primary)"
+                        onclick="toggleAuth(false)">Login</a>
+                </p>
+            </div>
+
+            <div id="auth-form-login" style="display: none;">
+                <input type="email" id="login-email" placeholder="Email Address">
+                <input type="password" id="login-password" placeholder="Password">
+                <button class="btn btn-primary" style="width: 100%" onclick="login()">Sign In</button>
+                <p style="text-align: center; margin-top: 1.5rem; color: var(--text-dim); font-size: 0.9rem;">
+                    New here? <a href="#" style="color: var(--primary)" onclick="toggleAuth(true)">Sign Up</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPLORER PAGE -->
+    <div id="page-explorer" class="page-view">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <h1 style="font-size: 2.5rem; margin-bottom: 0.5rem;">Pick a Style</h1>
+                <p style="color: var(--text-dim);">Choose an artistic style to transform your photo</p>
+            </div>
+        </div>
+        <div id="style-grid" class="grid">
+            <!-- Styles loaded here -->
+        </div>
+    </div>
+
+    <!-- CREATIONS PAGE -->
+    <div id="page-creations" class="page-view">
+        <h1 style="font-size: 2.5rem; margin-bottom: 2rem;">My Creations</h1>
+        <div id="creations-grid" class="grid">
+            <!-- Creations loaded here -->
+        </div>
+    </div>
+
+    <!-- GENERATION MODAL -->
+    <div id="gen-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <h2 id="modal-style-name" style="margin-bottom: 0.5rem;">Style Name</h2>
+            <p id="modal-style-desc" style="color: var(--text-dim); margin-bottom: 2rem;">Style description goes here.
+            </p>
+
+            <div id="upload-zone" class="dropzone" onclick="document.getElementById('file-input').click()">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📸</div>
+                <h3>Drop your photo here</h3>
+                <p style="color: var(--text-dim); margin-top: 0.5rem;">or click to browse files</p>
+                <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)">
+            </div>
+
+            <div id="generation-status" style="display: none;">
+                <div class="spinner"></div>
+                <p style="text-align: center; color: var(--primary); font-weight: 600;">Magic is happening... 🪄</p>
+            </div>
+
+            <div id="generation-result" style="display: none;">
+                <div class="preview-container">
+                    <div class="preview-box">
+                        <img id="res-original" src="" alt="Original">
+                    </div>
+                    <div class="preview-box">
+                        <img id="res-generated" src="" alt="Generated">
+                    </div>
+                </div>
+                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
+                    <button class="btn btn-primary" style="flex: 1;" onclick="closeModal()">Woooow!</button>
+                    <button class="btn btn-outline" onclick="downloadResult()">Download</button>
+                </div>
+            </div>
+
+            <div id="modal-actions">
+                <div style="margin-bottom: 1.5rem;">
+                    <label
+                        style="display: block; font-size: 0.8rem; color: var(--text-dim); margin-bottom: 0.5rem;">Custom
+                        Instructions (Optional)</label>
+                    <input type="text" id="custom-prompt" placeholder="e.g. Add purple sunglasses or make it rainy">
+                </div>
+                <button id="generate-btn" class="btn btn-primary" style="width: 100%; justify-content: center;"
+                    onclick="doGenerate()">
+                    Generate Masterpiece (50 Credits)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000/api';
+        let currentUser = null;
+        let selectedStyle = null;
+        let selectedFile = null;
+
+        // --- Auth Functions ---
+        function toggleAuth(isSignup) {
+            document.getElementById('auth-form-signup').style.display = isSignup ? 'block' : 'none';
+            document.getElementById('auth-form-login').style.display = isSignup ? 'none' : 'block';
+        }
+
+        async function signup() {
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/signup`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    saveSession(json.data);
+                    toast('Welcome to MagicPic! 🎨');
+                    initApp();
+                } else {
+                    toast(json.error?.message || 'Signup failed', true);
+                }
+            } catch (e) { toast('Server Error', true); }
+        }
+
+        async function login() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const res = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const json = await res.json();
+                if (json.success) {
+                    saveSession(json.data);
+                    toast('Good to see you again! ✨');
+                    initApp();
+                } else {
+                    toast(json.error?.message || 'Login failed', true);
+                }
+            } catch (e) { toast('Server Error', true); }
+        }
+
+        function saveSession(data) {
+            localStorage.setItem('mp_user', JSON.stringify(data.user));
+            localStorage.setItem('mp_token', data.access_token);
+            currentUser = data.user;
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        // --- App Navigation ---
+        function showPage(pageId) {
+            document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active'));
+            document.getElementById(`page-${pageId}`).classList.add('active');
+            if (pageId === 'explorer') fetchStyles();
+            if (pageId === 'creations') fetchCreations();
+        }
+
+        function toast(msg, isError = false) {
+            const t = document.getElementById('status-toast');
+            t.textContent = msg;
+            t.style.background = isError ? 'var(--accent)' : 'var(--primary)';
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), 3000);
+        }
+
+        // --- Data Fetching ---
+        async function fetchStyles() {
+            try {
+                const token = localStorage.getItem('mp_token');
+                const res = await fetch(`${API_BASE}/styles`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const json = await res.json();
+                renderStyles(json.data);
+            } catch (e) { toast('Failed to load styles', true); }
+        }
+
+        function renderStyles(styles) {
+            const grid = document.getElementById('style-grid');
+            grid.innerHTML = styles.map(s => `
+                <div class="style-card" onclick="openGenModal(${JSON.stringify(s).replace(/"/g, '&quot;')})">
+                    ${s.is_trending ? '<span class="style-badge">TRENDING</span>' : ''}
+                    <img src="${s.preview_url}" class="style-img" alt="${s.name}">
+                    <div class="style-info">
+                        <h3 class="style-name">${s.name}</h3>
+                        <p class="style-desc">${s.description}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function fetchCreations() {
+            const grid = document.getElementById('creations-grid');
+            grid.innerHTML = '<div class="spinner"></div>';
+            try {
+                const token = localStorage.getItem('mp_token');
+                const res = await fetch(`${API_BASE}/creations/mine`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const json = await res.json();
+                renderCreations(json.data);
+            } catch (e) { toast('Failed to load history', true); }
+        }
+
+        function renderCreations(creations) {
+            const grid = document.getElementById('creations-grid');
+            if (creations.length === 0) {
+                grid.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color: var(--text-dim);">No art generated yet. Go create something!</p>';
+                return;
+            }
+            grid.innerHTML = creations.map(c => `
+                <div class="creation-card">
+                    <div class="creation-imgs">
+                        <img src="${c.original_image_url}" alt="Original">
+                        <img src="${c.generated_image_url}" alt="Generated">
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-weight: 600;">${c.style?.name || 'Art'}</span>
+                        <span style="font-size: 0.8rem; color: var(--text-dim);">${new Date(c.created_at).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- Generation Flow ---
+        function openGenModal(style) {
+            selectedStyle = style;
+            selectedFile = null;
+            document.getElementById('modal-style-name').textContent = style.name;
+            document.getElementById('modal-style-desc').textContent = style.description;
+            document.getElementById('gen-modal').style.display = 'flex';
+            document.getElementById('upload-zone').style.display = 'block';
+            document.getElementById('modal-actions').style.display = 'block';
+            document.getElementById('generation-status').style.display = 'none';
+            document.getElementById('generation-result').style.display = 'none';
+            document.getElementById('generate-btn').textContent = `Generate Masterpiece (${style.credits_required} Credits)`;
+            document.getElementById('custom-prompt').value = '';
+        }
+
+        function closeModal() {
+            document.getElementById('gen-modal').style.display = 'none';
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                const zone = document.getElementById('upload-zone');
+                zone.innerHTML = `<h3>✅ File selected: ${file.name}</h3><p>Ready to transform!</p>`;
+                zone.style.borderColor = 'var(--primary)';
+            }
+        }
+
+        async function doGenerate() {
+            if (!selectedFile) { toast('Please pick a photo first!', true); return; }
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('style_id', selectedStyle.id);
+            formData.append('custom_prompt', document.getElementById('custom-prompt').value);
+
+            // UI feedback
+            document.getElementById('upload-zone').style.display = 'none';
+            document.getElementById('modal-actions').style.display = 'none';
+            document.getElementById('generation-status').style.display = 'block';
+
+            try {
+                const token = localStorage.getItem('mp_token');
+                const res = await fetch(`${API_BASE}/creations/generate`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+                const json = await res.json();
+
+                if (json.success) {
+                    showResult(json.data);
+                    // Update header credits
+                    document.getElementById('user-credits').textContent = json.data.credits_remaining;
+                    toast('Creation complete! 🎨');
+                } else {
+                    toast(json.error?.message || 'Generation failed', true);
+                    openGenModal(selectedStyle); // reset view
+                }
+            } catch (e) {
+                toast('Server Error during generation', true);
+                openGenModal(selectedStyle);
+            }
+        }
+
+        function showResult(data) {
+            document.getElementById('generation-status').style.display = 'none';
+            document.getElementById('generation-result').style.display = 'block';
+            document.getElementById('res-original').src = data.original_image_url;
+            document.getElementById('res-generated').src = data.generated_image_url;
+        }
+
+        function downloadResult() {
+            const link = document.createElement('a');
+            link.href = document.getElementById('res-generated').src;
+            link.download = `magicpic-${selectedStyle.slug}.jpg`;
+            link.click();
+        }
+
+        // --- Init ---
+        function initApp() {
+            const token = localStorage.getItem('mp_token');
+            const userStr = localStorage.getItem('mp_user');
+
+            if (token && userStr) {
+                currentUser = JSON.parse(userStr);
+                document.getElementById('page-auth').classList.remove('active');
+                document.getElementById('main-header').style.display = 'flex';
+                document.getElementById('user-credits').textContent = currentUser.credits;
+                showPage('explorer');
+            } else {
+                document.getElementById('page-auth').classList.add('active');
+                document.getElementById('main-header').style.display = 'none';
+            }
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+
+</html>

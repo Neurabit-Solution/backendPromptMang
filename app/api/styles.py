@@ -52,6 +52,7 @@ def _style_to_out(style: Style) -> StyleOut:
 @router.get("", response_model=StyleListResponse)
 def list_styles(
     category: Optional[str] = Query(None, description="Filter by category slug"),
+    category_id: Optional[int] = Query(None, description="Filter by category id"),
     trending: Optional[bool] = Query(None, description="Only trending styles"),
     search: Optional[str] = Query(None, description="Search by name"),
     db: Session = Depends(get_db),
@@ -60,6 +61,7 @@ def list_styles(
     Returns all active styles.
     Used by the frontend to render the home screen style grid.
     Each style includes its S3 thumbnail URL and the category it belongs to.
+    Filter by category using either category (slug) or category_id; category_id takes precedence if both are set.
     """
     query = (
         db.query(Style)
@@ -67,7 +69,9 @@ def list_styles(
         .filter(Style.is_active == True)
     )
 
-    if category:
+    if category_id is not None:
+        query = query.filter(Style.category_id == category_id)
+    elif category:
         query = query.join(Category).filter(Category.slug == category)
 
     if trending is True:
