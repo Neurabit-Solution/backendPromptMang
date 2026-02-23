@@ -25,6 +25,13 @@ from app.core.config import settings
 
 
 def get_s3_client():
+    if not (settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY):
+        raise RuntimeError(
+            "AWS credentials not configured. Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY "
+            "(env vars or config.properties)."
+        )
+    if not settings.AWS_REGION:
+        raise RuntimeError("AWS_REGION is not set.")
     return boto3.client(
         "s3",
         aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
