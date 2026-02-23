@@ -1,10 +1,21 @@
 import os
+from pathlib import Path
+from jproperties import Properties
 from google import genai
 
-# Replace with your actual API key
-API_KEY = "AIzaSyCtvY-o1aei62MLz4Pgs1mx66rUS9ce7-A"
+# Load API key from config.properties (never hardcode)
+_config_path = Path(__file__).resolve().parent / "config.properties"
+_configs = Properties()
+if _config_path.exists():
+    with open(_config_path, "rb") as f:
+        _configs.load(f)
+API_KEY = (_configs.get("gemini_api_key").data or "").strip() if _configs.get("gemini_api_key") else ""
+
 
 def check_ghibli_capability():
+    if not API_KEY:
+        print("Error: gemini_api_key not found in config.properties")
+        return
     client = genai.Client(api_key=API_KEY)
     
     # 1. Check if the required models are available for your key

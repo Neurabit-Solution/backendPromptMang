@@ -1,15 +1,19 @@
-
 import os
 import base64
+from pathlib import Path
 from google import genai
 from google.genai import types
 from jproperties import Properties
 
-# Load config
+# Load config from project root (do not hardcode API key)
+_config_path = Path(__file__).resolve().parent / "config.properties"
 configs = Properties()
-with open('config.properties', 'rb') as config_file:
-    configs.load(config_file)
-GEMINI_API_KEY = configs.get("gemini_api_key").data
+if _config_path.exists():
+    with open(_config_path, "rb") as config_file:
+        configs.load(config_file)
+GEMINI_API_KEY = (configs.get("gemini_api_key").data or "").strip() if configs.get("gemini_api_key") else ""
+if not GEMINI_API_KEY:
+    raise SystemExit("gemini_api_key not set in config.properties")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 

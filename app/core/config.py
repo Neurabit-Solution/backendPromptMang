@@ -20,15 +20,15 @@ class Settings:
             with open(config_path, 'rb') as config_file:
                 configs.load(config_file)
         
-        # Helper to get config from ENV or properties file
+        # Helper to get config from ENV or properties file (strip to avoid malformed AWS auth)
         def get_conf(key, default=None):
             env_val = os.environ.get(key.upper())
             if env_val is not None:
-                return env_val
+                return env_val.strip() if isinstance(env_val, str) else env_val
             
             prop_val = configs.get(key)
-            if prop_val is not None:
-                return prop_val.data
+            if prop_val is not None and prop_val.data is not None:
+                return prop_val.data.strip() if isinstance(prop_val.data, str) else prop_val.data
             
             return default
 

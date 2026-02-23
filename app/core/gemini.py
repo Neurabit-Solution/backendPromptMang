@@ -27,19 +27,23 @@ def transform_image(
     image_bytes: bytes,
     image_mime: str,
     prompt: str,
+    model: str | None = None,
 ) -> tuple[bytes, float]:
     """
     Send image + prompt to Gemini and return (generated_image_bytes, processing_time_seconds).
-    Tries multiple models in order of capability.
+    If model is set (e.g. "models/gemini-3-flash-preview"), use only that model; otherwise
+    try multiple models in order of capability.
     """
     client = _get_client()
     
-    # Priority order as requested by user + available models found in account
-    candidates = [
-        "models/gemini-2.5-flash-image",
-        "models/gemini-3-pro-image-preview",
-        "models/gemini-2.0-flash-exp-image-generation",
-    ]
+    if model:
+        candidates = [model]
+    else:
+        candidates = [
+            "models/gemini-2.5-flash-image",
+            "models/gemini-3-pro-image-preview",
+            "models/gemini-2.0-flash-exp-image-generation",
+        ]
 
     errors = []
     start = time.time()
@@ -60,12 +64,15 @@ def transform_image(
             
             elapsed = round(time.time() - start, 2)
 
-            # Extract the image bytes from the response
+            # Extract the image bytes from the response (API may return base64 or raw bytes)
             if response.candidates and response.candidates[0].content.parts:
                 for part in response.candidates[0].content.parts:
                     if part.inline_data and part.inline_data.mime_type and part.inline_data.mime_type.startswith("image/"):
                         print(f"Success with {model_name} in {elapsed}s")
-                        return base64.b64decode(part.inline_data.data), elapsed
+                        data = part.inline_data.data
+                        if isinstance(data, bytes):
+                            return data, elapsed
+                        return base64.b64decode(data), elapsed
             
             error_msg = f"Model {model_name} did not return an image content part."
             print(error_msg)

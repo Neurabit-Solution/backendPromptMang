@@ -169,6 +169,7 @@ async def generate_image(
                 image_bytes=image_bytes,
                 image_mime=image.content_type,
                 prompt=final_prompt,
+                model="models/gemini-3-pro-image-preview",
             )
         except Exception as e:
             return JSONResponse(

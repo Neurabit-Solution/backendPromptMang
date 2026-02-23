@@ -1,12 +1,22 @@
-
 import os
+from pathlib import Path
+from jproperties import Properties
 from google import genai
 from google.genai import types
 
-# The new API key to test
-API_KEY = "AIzaSyA48Q94nrUj2qOo-u1SWY_V_Mmu7yAZ2hQ"
+# Load API key from config.properties (never hardcode)
+_config_path = Path(__file__).resolve().parent / "config.properties"
+_configs = Properties()
+if _config_path.exists():
+    with open(_config_path, "rb") as f:
+        _configs.load(f)
+API_KEY = (_configs.get("gemini_api_key").data or "").strip() if _configs.get("gemini_api_key") else ""
+
 
 def check_new_key():
+    if not API_KEY:
+        print("Error: gemini_api_key not found in config.properties")
+        return
     client = genai.Client(api_key=API_KEY)
     
     print(f"--- Checking Models for New Key ---")
