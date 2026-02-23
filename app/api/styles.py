@@ -27,13 +27,13 @@ def _style_to_out(style: Style) -> StyleOut:
     return StyleOut(
         id=style.id,
         name=style.name,
-        slug=style.slug,
+        slug=style.slug or f"style-{style.id}",  # fallback if DB has NULL slug
         description=style.description,
         preview_url=get_proxy_url(style.preview_url),
         category=CategoryOut(
             id=style.category.id,
             name=style.category.name,
-            slug=style.category.slug,
+            slug=style.category.slug or f"category-{style.category.id}",
             icon=style.category.icon,
             description=style.category.description,
             preview_url=get_proxy_url(style.category.preview_url),
@@ -137,7 +137,7 @@ def list_categories(db: Session = Depends(get_db)):
         data.append(CategoryOut(
             id=cat.id,
             name=cat.name,
-            slug=cat.slug,
+            slug=cat.slug or f"category-{cat.id}",
             icon=cat.icon,
             description=cat.description,
             preview_url=get_proxy_url(cat.preview_url),

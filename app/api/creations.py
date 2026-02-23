@@ -58,13 +58,13 @@ def _creation_to_out(creation: Creation, credits_remaining: int) -> CreationOut:
         style=StyleOut(
             id=style.id,
             name=style.name,
-            slug=style.slug,
+            slug=style.slug or f"style-{style.id}",
             description=style.description,
             preview_url=get_proxy_url(style.preview_url),
             category=CategoryOut(
                 id=cat.id,
                 name=cat.name,
-                slug=cat.slug,
+                slug=cat.slug or f"category-{cat.id}",
                 icon=cat.icon,
                 description=cat.description,
                 preview_url=get_proxy_url(cat.preview_url),
