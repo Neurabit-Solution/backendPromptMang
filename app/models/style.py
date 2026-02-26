@@ -123,3 +123,16 @@ class Creation(Base):
     # Relationships
     user   = relationship("User", back_populates="creations")
     style  = relationship("Style", back_populates="creations")
+
+
+class GuestUsage(Base):
+    """
+    Tracks one-time free generation for guest users based on device ID.
+    Used to prevent device-based trial abuse.
+    """
+    __tablename__ = "guest_usages"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    device_id    = Column(String(100), unique=True, index=True, nullable=False)
+    style_id     = Column(Integer, ForeignKey("styles.id"), nullable=True)
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
