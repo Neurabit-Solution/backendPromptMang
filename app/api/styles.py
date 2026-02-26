@@ -47,7 +47,7 @@ def _style_to_out(style: Style) -> StyleOut:
     )
 
 
-# ─── Styles Endpoints ─────────────────────────────────────────────────────────
+# ─── Styles Endpoints (public, no auth required) ─────────────────────────────
 
 @router.get("", response_model=StyleListResponse)
 def list_styles(
@@ -80,7 +80,7 @@ def list_styles(
     if search:
         query = query.filter(Style.name.ilike(f"%{search}%"))
 
-    query = query.order_by(Style.display_order.asc(), Style.uses_count.desc())
+    query = query.order_by(Style.display_order.asc(), Style.id.desc())
 
     styles = query.all()
     return StyleListResponse(
@@ -100,7 +100,7 @@ def trending_styles(db: Session = Depends(get_db)):
         db.query(Style)
         .options(joinedload(Style.category))
         .filter(Style.is_active == True, Style.is_trending == True)
-        .order_by(Style.uses_count.desc())
+        .order_by(Style.display_order.asc(), Style.id.desc())
         .limit(10)
         .all()
     )
@@ -111,7 +111,7 @@ def trending_styles(db: Session = Depends(get_db)):
     )
 
 
-# ─── Categories Endpoint ──────────────────────────────────────────────────────
+# ─── Categories Endpoint (public, no auth required) ──────────────────────────
 
 @categories_router.get("")
 def list_categories(db: Session = Depends(get_db)):

@@ -1,13 +1,13 @@
 # Styles & Creations API Reference
 
-> All endpoints below require the user to be **logged in**.
-> Use the `access_token` received from `/api/auth/login` or `/api/auth/signup` in every request header.
+> **Styles and categories** (GET /api/styles, GET /api/styles/trending, GET /api/categories) work **without authentication**.
+> **Creations** (POST /api/creations/generate, GET /api/creations/mine) require the user to be **logged in** and the JWT in the header.
 
 ---
 
-## Authentication Header (Required on all endpoints)
+## Authentication Header (Required only for Creations)
 
-Every request after login must include the JWT access token in the `Authorization` header.
+For creation endpoints, include the `access_token` from `/api/auth/login` or `/api/auth/signup`:
 
 ```
 Authorization: Bearer <access_token>
@@ -32,11 +32,12 @@ Content-Type: multipart/form-data     (for file upload requests)
 
 Returns all active styles. Used to render the home screen style grid.
 
+**Auth required:** No
+
 ### Request
 
 ```
 GET /api/styles
-Authorization: Bearer <access_token>
 ```
 
 #### Optional Query Parameters
@@ -124,11 +125,12 @@ GET /api/styles?search=neon
 
 Returns the top 10 trending styles for the **"Hot Right Now"** section on the home screen. Sorted by `uses_count` descending.
 
+**Auth required:** No
+
 ### Request
 
 ```
 GET /api/styles/trending
-Authorization: Bearer <access_token>
 ```
 
 No query parameters needed.
@@ -178,11 +180,12 @@ Same shape as `GET /api/styles`, but always limited to 10 results and only `is_t
 
 Returns all active categories. Used to render the category filter tabs in the UI.
 
+**Auth required:** No
+
 ### Request
 
 ```
 GET /api/categories
-Authorization: Bearer <access_token>
 ```
 
 No query parameters needed.
