@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..core import security, database
-from ..core.firebase import verify_firebase_id_token, is_firebase_configured
+from ..core.firebase import verify_firebase_id_token, get_firebase_status
 from ..models import user as models
 from ..schemas import user as schemas
 from datetime import timedelta
@@ -33,7 +33,7 @@ def generate_referral_code():
 @router.get("/firebase-status")
 def firebase_status():
     """Check if Firebase is configured on the server (for debugging deploy)."""
-    return {"firebase_configured": is_firebase_configured()}
+    return get_firebase_status()
 
 @router.post("/signup", response_model=schemas.SignupResponse)
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):

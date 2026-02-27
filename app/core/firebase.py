@@ -60,13 +60,37 @@ def _initialize_firebase_app():
     return firebase_admin.initialize_app(cred, options or None)
 
 
-def is_firebase_configured() -> bool:
-    """Return True if Firebase credentials are available (for status checks)."""
+def get_firebase_status() -> dict:
+    """
+    Return status for debugging: which credential source is set and if config is valid.
+    Does not expose secret values.
+    """
+    from app.core.config import settings
+
+    b64 = (settings.FIREBASE_SERVICE_ACCOUNT_B64 or "").strip()
+    json_str = (settings.FIREBASE_SERVICE_ACCOUNT_JSON or "").strip()
+    path = (settings.FIREBASE_SERVICE_ACCOUNT_PATH or "").strip()
+
+    status = {
+        "firebase_configured": False,
+        "has_b64": bool(b64),
+        "has_json": bool(json_str),
+        "has_path": bool(path),
+        "path_exists": path and os.path.exists(path),
+    }
+
     try:
         _get_firebase_credentials()
-        return True
-    except RuntimeError:
-        return False
+        status["firebase_configured"] = True
+    except RuntimeError as e:
+        status["credential_error"] = "invalid" if (b64 or json_str or (path and os.path.exists(path))) else "missing"
+
+    return status
+
+
+def is_firebase_configured() -> bool:
+    """Return True if Firebase credentials are available (for status checks)."""
+    return get_firebase_status()["firebase_configured"]
 
 
 def verify_firebase_id_token(id_token: str) -> dict:
