@@ -55,3 +55,8 @@ class SignupResponse(BaseModel):
     message: str
     
     model_config = ConfigDict(from_attributes=True)
+
+
+class GoogleLoginRequest(BaseModel):
+    id_token: str
+    device_info: Optional[dict] = None

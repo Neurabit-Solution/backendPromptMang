@@ -58,4 +58,10 @@ class Settings:
         # Gemini AI
         self.GEMINI_API_KEY = get_conf("gemini_api_key", "")
 
+        # Firebase
+        self.FIREBASE_PROJECT_ID = get_conf("firebase_project_id", "")
+        # Either: JSON string (e.g. from GitHub Secrets FIREBASE_SERVICE_ACCOUNT_JSON) or file path
+        self.FIREBASE_SERVICE_ACCOUNT_JSON = get_conf("firebase_service_account_json", "")
+        self.FIREBASE_SERVICE_ACCOUNT_PATH = get_conf("firebase_service_account_path", "")
+
 settings = Settings()

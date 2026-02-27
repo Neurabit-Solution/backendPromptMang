@@ -1,6 +1,8 @@
 # Local configuration
 config.properties
 
+firebase-service-account.json
+
 # docker-compose.yml
 # Dockerfile
 # .dockerignore
