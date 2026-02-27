@@ -7,9 +7,12 @@ from ..core.firebase import verify_firebase_id_token
 from ..models import user as models
 from ..schemas import user as schemas
 from datetime import timedelta
+import logging
 import secrets
 import random
 import string
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/auth",
@@ -91,7 +94,8 @@ def login_with_google(google_data: schemas.GoogleLoginRequest, db: Session = Dep
     """
     try:
         decoded_token = verify_firebase_id_token(google_data.id_token)
-    except ValueError:
+    except ValueError as e:
+        logger.warning("Google auth token verification failed: %s", e, exc_info=True)
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={

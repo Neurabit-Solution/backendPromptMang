@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import firebase_admin
@@ -7,10 +8,21 @@ from app.core.config import settings
 
 def _get_firebase_credentials():
     """
-    Resolve Firebase credentials from either:
-    - FIREBASE_SERVICE_ACCOUNT_JSON: raw JSON string (e.g. from GitHub Secrets), or
+    Resolve Firebase credentials from (in order):
+    - FIREBASE_SERVICE_ACCOUNT_B64: base64-encoded JSON (safe for .env / GitHub Secrets), or
+    - FIREBASE_SERVICE_ACCOUNT_JSON: raw JSON string, or
     - FIREBASE_SERVICE_ACCOUNT_PATH: path to service account JSON file.
     """
+    b64 = (settings.FIREBASE_SERVICE_ACCOUNT_B64 or "").strip()
+    if b64:
+        try:
+            raw = base64.b64decode(b64).decode("utf-8")
+            return credentials.Certificate(json.loads(raw))
+        except (ValueError, json.JSONDecodeError) as e:
+            raise RuntimeError(
+                "FIREBASE_SERVICE_ACCOUNT_B64 is set but not valid base64/JSON."
+            ) from e
+
     json_str = (settings.FIREBASE_SERVICE_ACCOUNT_JSON or "").strip()
     if json_str:
         try:
@@ -26,9 +38,9 @@ def _get_firebase_credentials():
         return credentials.Certificate(path)
 
     raise RuntimeError(
-        "Firebase credentials not configured. Set either FIREBASE_SERVICE_ACCOUNT_JSON "
-        "(full JSON string, e.g. from GitHub Secrets) or FIREBASE_SERVICE_ACCOUNT_PATH "
-        "(path to service account JSON file) in config or environment."
+        "Firebase credentials not configured. Set one of: FIREBASE_SERVICE_ACCOUNT_B64 "
+        "(base64-encoded JSON), FIREBASE_SERVICE_ACCOUNT_JSON (raw JSON), or "
+        "FIREBASE_SERVICE_ACCOUNT_PATH (path to JSON file) in config or environment."
     )
 
 

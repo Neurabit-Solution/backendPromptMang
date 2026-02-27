@@ -60,7 +60,8 @@ class Settings:
 
         # Firebase
         self.FIREBASE_PROJECT_ID = get_conf("firebase_project_id", "")
-        # Either: JSON string (e.g. from GitHub Secrets FIREBASE_SERVICE_ACCOUNT_JSON) or file path
+        # One of: B64 (for .env/deploy), raw JSON string, or file path
+        self.FIREBASE_SERVICE_ACCOUNT_B64 = get_conf("firebase_service_account_b64", "")
         self.FIREBASE_SERVICE_ACCOUNT_JSON = get_conf("firebase_service_account_json", "")
         self.FIREBASE_SERVICE_ACCOUNT_PATH = get_conf("firebase_service_account_path", "")
 
