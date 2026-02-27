@@ -13,7 +13,7 @@ def _get_firebase_credentials():
     - FIREBASE_SERVICE_ACCOUNT_JSON: raw JSON string, or
     - FIREBASE_SERVICE_ACCOUNT_PATH: path to service account JSON file.
     """
-    b64 = (settings.FIREBASE_SERVICE_ACCOUNT_B64 or "").strip()
+    b64 = (settings.FIREBASE_SERVICE_ACCOUNT_B64 or "").strip().replace("\n", "").replace("\r", "")
     if b64:
         try:
             raw = base64.b64decode(b64).decode("utf-8")
@@ -58,6 +58,15 @@ def _initialize_firebase_app():
         options["projectId"] = settings.FIREBASE_PROJECT_ID
 
     return firebase_admin.initialize_app(cred, options or None)
+
+
+def is_firebase_configured() -> bool:
+    """Return True if Firebase credentials are available (for status checks)."""
+    try:
+        _get_firebase_credentials()
+        return True
+    except RuntimeError:
+        return False
 
 
 def verify_firebase_id_token(id_token: str) -> dict:

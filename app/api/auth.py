@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..core import security, database
-from ..core.firebase import verify_firebase_id_token
+from ..core.firebase import verify_firebase_id_token, is_firebase_configured
 from ..models import user as models
 from ..schemas import user as schemas
 from datetime import timedelta
@@ -28,6 +28,12 @@ def get_db():
 
 def generate_referral_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+
+@router.get("/firebase-status")
+def firebase_status():
+    """Check if Firebase is configured on the server (for debugging deploy)."""
+    return {"firebase_configured": is_firebase_configured()}
 
 @router.post("/signup", response_model=schemas.SignupResponse)
 def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -95,7 +101,12 @@ def login_with_google(google_data: schemas.GoogleLoginRequest, db: Session = Dep
     try:
         decoded_token = verify_firebase_id_token(google_data.id_token)
     except ValueError as e:
-        logger.warning("Google auth token verification failed: %s", e, exc_info=True)
+        cause = e.__cause__
+        logger.warning(
+            "Google auth token verification failed: %s",
+            str(cause) if cause else str(e),
+            exc_info=True,
+        )
         return JSONResponse(
             status_code=status.HTTP_401_UNAUTHORIZED,
             content={
