@@ -1,18 +1,6 @@
 #!/usr/bin/env python3
 """
-Convert an image to Studio Ghibli–style art using Gemini.
 
-Reads config.properties for gemini_api_key, loads the given image,
-sends it to Gemini with a Ghibli-style prompt, and saves the result.
-
-Usage (run from project root; use the project venv so config and deps load):
-    ./venv/bin/python scripts/image_to_ghibli.py <path_to_image>
-
-Example:
-    ./venv/bin/python scripts/image_to_ghibli.py ~/Downloads/photo.jpg
-
-Output is saved as <original_name>_ghibli.jpg in the same directory as the input.
-Use -o to set a custom output path (e.g. -o ./output.jpg to save in current dir).
 """
 
 import argparse
@@ -40,7 +28,7 @@ def get_mime(path: Path) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Convert image to Ghibli art via Gemini")
+    # parser = argparse.ArgumentParser(description="Convert image to Ghibli art via Gemini")
     parser.add_argument("image", type=Path, help="Path to input image")
     parser.add_argument("-o", "--output", type=Path, default=None, help="Output path (default: <input>_ghibli.jpg)")
     args = parser.parse_args()
