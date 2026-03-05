@@ -20,6 +20,8 @@ class User(UserBase):
     credits: int
     is_verified: bool
     referral_code: Optional[str] = None
+    daily_credits: Optional[int] = None
+    daily_credits_date: Optional[datetime] = None
     created_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
@@ -60,3 +62,4 @@ class SignupResponse(BaseModel):
 class GoogleLoginRequest(BaseModel):
     id_token: str
     device_info: Optional[dict] = None
+    referral_code: Optional[str] = None

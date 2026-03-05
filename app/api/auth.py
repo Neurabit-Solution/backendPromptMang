@@ -3,6 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..core import security, database
+from ..core.config import settings
 from ..core.firebase import verify_firebase_id_token, get_firebase_status
 from ..models import user as models
 from ..schemas import user as schemas
@@ -56,22 +57,37 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
         )
     
     hashed_password = security.get_password_hash(user.password)
-    
-    # Generate unique referral code
+
+    # Generate unique referral code for this new user
     referral_code = generate_referral_code()
     while db.query(models.User).filter(models.User.referral_code == referral_code).first():
         referral_code = generate_referral_code()
-        
+
+    # Handle referral if a valid referral_code was supplied
+    referred_by = None
+    if user.referral_code:
+        referred_by = (
+            db.query(models.User)
+            .filter(models.User.referral_code == user.referral_code)
+            .first()
+        )
+
     new_user = models.User(
         email=email,
         hashed_password=hashed_password,
         name=user.name,
         phone=user.phone,
         referral_code=referral_code,
-        credits=2500, # Initial credits
-        is_verified=False
+        credits=settings.SIGNUP_INITIAL_CREDITS,
+        is_verified=False,
+        referred_by_id=referred_by.id if referred_by else None,
     )
-    
+
+    # Reward the referrer, if any
+    if referred_by:
+        referred_by.credits += settings.REFERRAL_REWARD_CREDITS
+        db.add(referred_by)
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -134,6 +150,7 @@ def login_with_google(google_data: schemas.GoogleLoginRequest, db: Session = Dep
     email = email.lower().strip()
     name = decoded_token.get("name") or email.split("@")[0]
     avatar_url = decoded_token.get("picture")
+    referral_code_input = google_data.referral_code
 
     user = (
         db.query(models.User)
@@ -147,6 +164,15 @@ def login_with_google(google_data: schemas.GoogleLoginRequest, db: Session = Dep
         while db.query(models.User).filter(models.User.referral_code == referral_code).first():
             referral_code = generate_referral_code()
 
+        # Lookup referrer if referral code was supplied
+        referred_by = None
+        if referral_code_input:
+            referred_by = (
+                db.query(models.User)
+                .filter(models.User.referral_code == referral_code_input)
+                .first()
+            )
+
         # Create a random password that is never used directly
         random_password = secrets.token_urlsafe(32)
         hashed_password = security.get_password_hash(random_password)
@@ -158,9 +184,15 @@ def login_with_google(google_data: schemas.GoogleLoginRequest, db: Session = Dep
             phone=None,
             avatar_url=avatar_url,
             referral_code=referral_code,
-            credits=2500,
+            credits=settings.SIGNUP_INITIAL_CREDITS,
             is_verified=True,
+            referred_by_id=referred_by.id if referred_by else None,
         )
+
+        if referred_by:
+            referred_by.credits += settings.REFERRAL_REWARD_CREDITS
+            db.add(referred_by)
+
         db.add(user)
         db.commit()
         db.refresh(user)

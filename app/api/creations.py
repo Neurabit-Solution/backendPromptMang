@@ -17,6 +17,8 @@ from app.models.user import User
 from app.models.style import Style, Category
 from app.models.style import Creation
 from app.schemas.style import GenerateResponse, CreationOut, StyleOut, CategoryOut
+from app.core.config import settings
+from datetime import datetime, timezone
 
 router = APIRouter(prefix="/creations", tags=["Creations"])
 
@@ -87,6 +89,24 @@ def _creation_to_out(creation: Creation, credits_remaining: int) -> CreationOut:
     )
 
 
+def _refresh_daily_credits(user: User, db: Session) -> User:
+    """
+    Ensure the user's daily credits are granted for the current day.
+    Daily credits are reset every calendar day (UTC) and do not accumulate.
+    """
+    now = datetime.now(timezone.utc)
+    today = now.date()
+
+    if user.daily_credits_date is None or user.daily_credits_date.date() != today:
+        user.daily_credits = settings.DAILY_FREE_CREDITS
+        user.daily_credits_date = now
+        user = db.merge(user)
+        db.commit()
+        db.refresh(user)
+
+    return user
+
+
 # ─── Generate Endpoint ────────────────────────────────────────────────────────
 
 @router.post("/generate", response_model=GenerateResponse)
@@ -129,14 +149,18 @@ async def generate_image(
                 content={"success": False, "error": {"code": "STYLE_NOT_FOUND", "message": "Style not found."}},
             )
 
-        if current_user.credits < style.credits_required:
+        # Refresh / grant today's daily credits (non-accumulating, expire each day)
+        current_user = _refresh_daily_credits(current_user, db)
+
+        total_available_credits = (current_user.credits or 0) + (current_user.daily_credits or 0)
+        if total_available_credits < style.credits_required:
             return JSONResponse(
                 status_code=402,
                 content={
                     "success": False,
                     "error": {
                         "code": "INSUFFICIENT_CREDITS",
-                        "message": f"You need {style.credits_required} credits. You have {current_user.credits}.",
+                        "message": f"You need {style.credits_required} credits. You have {total_available_credits}.",
                     },
                 },
             )
@@ -208,10 +232,22 @@ async def generate_image(
         )
         db.add(creation)
 
-        # ── 8. Deduct credits & increment style usage ──────────────────────────
+        # ── 8. Deduct credits (daily, then main) & increment style usage ───────
         # Ensure user is attached to this session
         current_user = db.merge(current_user)
-        current_user.credits -= style.credits_required
+
+        credits_to_deduct = style.credits_required
+
+        # Use daily credits first
+        if (current_user.daily_credits or 0) > 0:
+            use_from_daily = min(current_user.daily_credits, credits_to_deduct)
+            current_user.daily_credits -= use_from_daily
+            credits_to_deduct -= use_from_daily
+
+        # Deduct any remaining from main credits balance
+        if credits_to_deduct > 0:
+            current_user.credits -= credits_to_deduct
+
         style.uses_count += 1
 
         db.commit()

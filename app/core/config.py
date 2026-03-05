@@ -49,6 +49,14 @@ class Settings:
         self.ACCESS_TOKEN_EXPIRE_MINUTES = int(get_conf("access_token_expire_minutes", 30))
         self.REFRESH_TOKEN_EXPIRE_DAYS = int(get_conf("refresh_token_expire_days", 7))
 
+        # Credits / referrals
+        # Initial credits granted on user signup (email/password or Google)
+        self.SIGNUP_INITIAL_CREDITS = int(get_conf("signup_initial_credits", 2))
+        # Credits granted to the referrer when a referred user signs up
+        self.REFERRAL_REWARD_CREDITS = int(get_conf("referral_reward_credits", 5))
+        # Daily free credits granted to every user, expiring at end of the day
+        self.DAILY_FREE_CREDITS = int(get_conf("daily_free_credits", 5))
+
         # AWS S3
         self.AWS_ACCESS_KEY_ID     = get_conf("aws_access_key_id", "")
         self.AWS_SECRET_ACCESS_KEY = get_conf("aws_secret_access_key", "")

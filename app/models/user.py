@@ -1,7 +1,8 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
+from app.core.config import settings
 
 class User(Base):
     __tablename__ = "users"
@@ -12,9 +13,12 @@ class User(Base):
     name = Column(String, nullable=False)
     phone = Column(String, nullable=True)
     avatar_url = Column(String, nullable=True)
-    credits = Column(Integer, default=2500)
+    credits = Column(Integer, default=settings.SIGNUP_INITIAL_CREDITS)
     is_verified = Column(Boolean, default=False)
     referral_code = Column(String, unique=True, index=True, nullable=True)
+    referred_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    daily_credits = Column(Integer, default=0)
+    daily_credits_date = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
