@@ -31,6 +31,29 @@ def generate_referral_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
 
+def get_current_user(
+    token: str = Depends(security.oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> models.User:
+    """Requires Bearer access token. Returns the authenticated user."""
+    payload = security.verify_token(token)
+    if not payload or payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    email = payload.get("sub")
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return user
+
+
 @router.get("/firebase-status")
 def firebase_status():
     """Check if Firebase is configured on the server (for debugging deploy)."""
@@ -81,6 +104,7 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
         credits=settings.SIGNUP_INITIAL_CREDITS,
         is_verified=False,
         referred_by_id=referred_by.id if referred_by else None,
+        last_login=func.now(),
     )
 
     # Reward the referrer, if any
@@ -187,6 +211,7 @@ def login_with_google(google_data: schemas.GoogleLoginRequest, db: Session = Dep
             credits=settings.SIGNUP_INITIAL_CREDITS,
             is_verified=True,
             referred_by_id=referred_by.id if referred_by else None,
+            last_login=func.now(),
         )
 
         if referred_by:
@@ -208,6 +233,10 @@ def login_with_google(google_data: schemas.GoogleLoginRequest, db: Session = Dep
         if name and user.name != name:
             user.name = name
             updated = True
+        
+        user.last_login = func.now()
+        updated = True
+
         if updated:
             db.commit()
             db.refresh(user)
@@ -260,6 +289,10 @@ def login(user_credentials: schemas.UserLogin, db: Session = Depends(get_db)):
             },
         )
         
+    user.last_login = func.now()
+    db.commit()
+    db.refresh(user)
+        
     access_token = security.create_access_token(user.email)
     refresh_token = security.create_refresh_token(user.email)
     
@@ -274,6 +307,19 @@ def login(user_credentials: schemas.UserLogin, db: Session = Depends(get_db)):
         },
         "message": "Login successful"
     }
+
+@router.get("/me")
+def get_me(current_user: models.User = Depends(get_current_user)):
+    """
+    Return the current authenticated user (e.g. profile, referral_code, credits).
+    Use this so logged-in users can view their referral code and balance anytime.
+    """
+    return {
+        "success": True,
+        "data": {"user": current_user},
+        "message": "OK",
+    }
+
 
 @router.post("/refresh", response_model=schemas.Token)
 def refresh_token(token: str = Depends(security.oauth2_scheme), db: Session = Depends(get_db)):

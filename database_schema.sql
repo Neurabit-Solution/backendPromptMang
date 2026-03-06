@@ -33,6 +33,8 @@ CREATE TABLE users (
     referral_code VARCHAR(10) UNIQUE NOT NULL,
     referred_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     is_verified BOOLEAN DEFAULT FALSE,
+    daily_credits INTEGER DEFAULT 0,
+    daily_credits_date TIMESTAMP WITH TIME ZONE,
     is_active BOOLEAN DEFAULT TRUE,
     last_login TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -283,6 +285,20 @@ CREATE INDEX idx_ad_watches_user_id ON ad_watches(user_id);
 COMMENT ON TABLE ad_watches IS 'Track ad viewing to enforce daily limits (5 ads/day)';
 COMMENT ON COLUMN ad_watches.watched_date IS 'Date only (for daily limit checking)';
 COMMENT ON COLUMN ad_watches.watched_at IS 'Exact timestamp of ad watch';
+
+-- ============================================================
+-- 10. GUEST_USAGES TABLE
+-- ============================================================
+-- Tracks one-time free generation for guest users
+
+CREATE TABLE guest_usages (
+    id SERIAL PRIMARY KEY,
+    device_id VARCHAR(100) UNIQUE NOT NULL,
+    style_id INTEGER REFERENCES styles(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_guest_usages_device_id ON guest_usages(device_id);
 
 -- ============================================================
 -- TRIGGER: Auto-update updated_at timestamp

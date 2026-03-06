@@ -225,7 +225,59 @@ Notes:
 
 ---
 
-## 3. Referral Credits (Behavior)
+## 3. Get current user (profile / referral code)
+
+There is **no** API to "create" a referral code — one is **auto-generated at signup** and never changes. To **view** it (and the rest of the profile) anytime while logged in, use:
+
+- **URL**: `/api/auth/me`
+- **Method**: `GET`
+- **Auth**: Required — `Authorization: Bearer <access_token>`
+- **Purpose**: Return the current authenticated user so the frontend can show profile, **referral code**, credits, and daily credits without requiring another login.
+
+### 3.1 Request
+
+No body. Send the access token in the header:
+
+```http
+GET /api/auth/me
+Authorization: Bearer <access_token>
+```
+
+### 3.2 Success response
+
+Status: `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "user": {
+      "id": 1,
+      "email": "user@example.com",
+      "name": "User Name",
+      "phone": null,
+      "avatar_url": "https://example.com/avatar.png",
+      "credits": 7,
+      "is_verified": true,
+      "referral_code": "REF12345",
+      "daily_credits": 3,
+      "daily_credits_date": "2026-03-05T12:00:00Z",
+      "created_at": "2026-03-01T10:00:00Z"
+    }
+  },
+  "message": "OK"
+}
+```
+
+Use `data.user.referral_code` to show "Your referral code" in settings or referral UI. Use `data.user.credits` and `data.user.daily_credits` / `data.user.daily_credits_date` for balance display.
+
+### 3.3 Error response
+
+- **Missing or invalid token**: `401 Unauthorized` (e.g. `detail: "Invalid or expired token"`).
+
+---
+
+## 4. Referral Credits (Behavior)
 
 There is no separate "referral API" — referral logic is triggered during **signup** when a valid `referral_code` is provided.
 
@@ -237,17 +289,17 @@ There is no separate "referral API" — referral logic is triggered during **sig
 Frontend implications:
 
 - To show "You earned X credits from referrals", you may need a separate endpoint/stats in the future; currently the API only exposes total `credits`, not the breakdown.
-- You can surface referral UX on signup by:
-  - Showing the user’s own `referral_code` from `data.user.referral_code`.
+- You can surface referral UX by:
+  - Showing the user’s own `referral_code` from signup/login response or from **`GET /api/auth/me`** (so they can see or copy it later in profile/settings).
   - Accepting a `referral_code` field on your signup/Google-connect UI and passing it through.
 
 ---
 
-## 4. Daily Free Credits (Expiring per Day)
+## 5. Daily Free Credits (Expiring per Day)
 
 Daily credits are **not** requested via a dedicated endpoint. They are granted/updated automatically when a user performs a credit-consuming action (image generation).
 
-### 4.1 Model Fields (in `user`)
+### 5.1 Model Fields (in `user`)
 
 The user object includes:
 
@@ -265,7 +317,7 @@ Behavior (server-side, conceptual for frontend):
   - Any remaining cost is taken from normal `credits`.
   - `daily_credits` do **not** roll over; they are effectively reset each new day.
 
-### 4.2 How Frontend Should Use It
+### 5.2 How Frontend Should Use It
 
 - Treat `daily_credits` as **bonus credits for today**:
   - Display them if helpful (e.g. "5 free credits today").
@@ -282,7 +334,7 @@ Actual enforcement still happens server-side (see next section).
 
 ---
 
-## 5. Image Generation & Credit Enforcement
+## 6. Image Generation & Credit Enforcement
 
 - **URL**: `/api/creations/generate`
 - **Method**: `POST` (multipart/form-data)
@@ -290,14 +342,14 @@ Actual enforcement still happens server-side (see next section).
 - **Purpose**:
   - Generate a new creation and deduct credits (daily first, then main balance).
 
-### 5.1 Relevant Request Fields
+### 6.1 Relevant Request Fields
 
 Payload fields (simplified to credit-relevant parts; full spec is in existing docs):
 
 - **`style_id`**: Style to apply.
 - **`image`**: Uploaded image.
 
-### 5.2 Success Response (Excerpt)
+### 6.2 Success Response (Excerpt)
 
 On success, backend returns the `GenerateResponse`. The important credit-related fields are:
 
@@ -320,7 +372,7 @@ On success, backend returns the `GenerateResponse`. The important credit-related
 
 > The frontend can use `credits_remaining` to keep its local view in sync after a generation, even if it doesn’t know exactly how much came from daily vs main credits.
 
-### 5.3 Insufficient Credits Response
+### 6.3 Insufficient Credits Response
 
 If the user does not have enough **total** credits (normal + daily):
 
@@ -341,7 +393,7 @@ Status: `402 Payment Required`
 
 ---
 
-## 6. Configuration Summary (For Reference)
+## 7. Configuration Summary (For Reference)
 
 These values are **configurable on the backend**; frontend should not hard-code them, but may want to reflect them in static copy if they are stable:
 
