@@ -72,5 +72,10 @@ class Settings:
         self.FIREBASE_SERVICE_ACCOUNT_B64 = get_conf("firebase_service_account_b64", "")
         self.FIREBASE_SERVICE_ACCOUNT_JSON = get_conf("firebase_service_account_json", "")
         self.FIREBASE_SERVICE_ACCOUNT_PATH = get_conf("firebase_service_account_path", "")
+        # Android-only restriction: set to your Android app's OAuth2 client ID
+        # (found in Firebase Console → Project Settings → Your apps → Android → google-services.json → oauth_client.client_id)
+        # When set, only Firebase tokens whose `aud` matches this value are accepted.
+        # Leave empty to skip this extra check (not recommended for production).
+        self.FIREBASE_ANDROID_CLIENT_ID = get_conf("firebase_android_client_id", "")
 
 settings = Settings()

@@ -106,3 +106,32 @@ def verify_firebase_id_token(id_token: str) -> dict:
     except Exception as exc:  # noqa: BLE001 - bubble up as ValueError for the API layer
         raise ValueError("Invalid Firebase ID token") from exc
 
+
+def verify_firebase_android_token(id_token: str) -> dict:
+    """
+    Verify a Firebase ID token and enforce that it was issued for the Android app.
+
+    Behaviour:
+    - Always verifies the token with Firebase Admin SDK.
+    - If FIREBASE_ANDROID_CLIENT_ID is configured, additionally confirms that the
+      token `aud` claim matches the Android OAuth2 client ID.  This blocks tokens
+      obtained via a web / browser Firebase project from being accepted.
+    - Raises ValueError with a descriptive message on any failure.
+    """
+    decoded_token = verify_firebase_id_token(id_token)
+
+    android_client_id = (settings.FIREBASE_ANDROID_CLIENT_ID or "").strip()
+    if android_client_id:
+        # Firebase ID tokens carry the OAuth2 client_id in the `aud` field.
+        # It can be a string or a list depending on the SDK version.
+        aud = decoded_token.get("aud", "")
+        aud_values = aud if isinstance(aud, list) else [aud]
+
+        if android_client_id not in aud_values:
+            raise ValueError(
+                "Token audience does not match the configured Android client ID. "
+                "Only tokens from the Android application are accepted."
+            )
+
+    return decoded_token
+

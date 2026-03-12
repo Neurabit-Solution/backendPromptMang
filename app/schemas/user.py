@@ -61,5 +61,6 @@ class SignupResponse(BaseModel):
 
 class GoogleLoginRequest(BaseModel):
     id_token: str
+    platform: Optional[str] = "android"   # Expected to always be "android"
     device_info: Optional[dict] = None
     referral_code: Optional[str] = None

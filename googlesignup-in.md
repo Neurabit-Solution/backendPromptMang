@@ -1,6 +1,8 @@
-## Google Sign-In / Sign-Up API Guide
+## Google Sign-In / Sign-Up API Guide (Android Only)
 
-This document explains how the frontend should implement **Google sign-in & sign-up** using Firebase on the client and the existing backend endpoint.
+This document explains how the **Android app** should implement **Google sign-in & sign-up** using Firebase and the existing backend endpoint.
+
+> ⚠️ **Important**: This endpoint is configured for **Android app usage only**. Requests from web browsers or other platforms will be rejected.
 
 ---
 
@@ -20,15 +22,21 @@ Content-Type: `application/json`
 ```json
 {
   "id_token": "FIREBASE_GOOGLE_ID_TOKEN",
+  "platform": "android",
   "device_info": {
-    "device": "web",
-    "userAgent": "optional-user-agent-or-device-string"
-  }
+    "device": "android",
+    "model": "Pixel 7"
+  },
+  "referral_code": "OPTIONAL_REFERRAL_CODE"
 }
 ```
 
-- **id_token**: Firebase ID token obtained from the Google sign-in flow on the client.
-- **device_info**: Optional object for metadata; can be omitted or customized.
+| Field          | Type   | Required | Description                                          |
+|----------------|--------|----------|------------------------------------------------------|
+| `id_token`     | string | ✅ Yes   | Firebase ID token from `GoogleSignInAccount.getIdToken()` |
+| `platform`     | string | ✅ Yes   | Must be `"android"`. Other values are rejected.      |
+| `device_info`  | object | No       | Optional metadata (device model, OS, etc.)           |
+| `referral_code`| string | No       | Referral code of the user who invited this user      |
 
 #### Success Response
 
@@ -44,7 +52,7 @@ Status: `200 OK`
       "name": "User Name",
       "phone": null,
       "avatar_url": "https://example.com/avatar.png",
-      "credits": 2500,
+      "credits": 2,
       "is_verified": true,
       "referral_code": "ABCD1234",
       "created_at": "2026-03-05T10:00:00Z"
@@ -59,6 +67,18 @@ Status: `200 OK`
 ```
 
 #### Error Responses
+
+- **Non-Android platform**
+
+  ```json
+  {
+    "success": false,
+    "error": {
+      "code": "PLATFORM_NOT_ALLOWED",
+      "message": "Google sign-in is only supported on the Android app."
+    }
+  }
+  ```
 
 - **Invalid token**
 
@@ -86,67 +106,87 @@ Status: `200 OK`
 
 ---
 
-### Frontend Implementation (Firebase + Fetch)
+### Android Implementation (Kotlin + Firebase)
 
-Below is a reference flow using **Firebase Web SDK** and `fetch`. Adapt as needed (React, Next.js, plain JS, etc.).
+#### 1. Add dependencies (`build.gradle.kts`)
 
-#### 1. Get Google ID token from Firebase
+```kotlin
+implementation("com.google.firebase:firebase-auth-ktx")
+implementation("com.google.android.gms:play-services-auth:21.0.0")
+```
 
-Example (TypeScript/JavaScript):
+#### 2. Configure Google Sign-In
 
-```ts
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth } from "./firebase"; // your initialized Firebase auth
+```kotlin
+val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+    .requestIdToken(getString(R.string.default_web_client_id)) // from google-services.json
+    .requestEmail()
+    .build()
 
-const googleProvider = new GoogleAuthProvider();
+val googleSignInClient = GoogleSignIn.getClient(this, gso)
+```
 
-export async function signInWithGoogle() {
-  const result = await signInWithPopup(auth, googleProvider);
-  const idToken = await result.user.getIdToken(); // <-- send this to backend
-  return idToken;
+#### 3. Launch the sign-in flow
+
+```kotlin
+// In your Activity or Fragment:
+private val signInLauncher = registerForActivityResult(
+    ActivityResultContracts.StartActivityForResult()
+) { result ->
+    val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+    handleSignInResult(task)
+}
+
+fun launchGoogleSignIn() {
+    signInLauncher.launch(googleSignInClient.signInIntent)
 }
 ```
 
-#### 2. Call the backend `/api/auth/google` endpoint
+#### 4. Handle result and call backend
 
-```ts
-export async function loginOrSignupWithGoogle() {
-  const idToken = await signInWithGoogle();
+```kotlin
+private fun handleSignInResult(task: Task<GoogleSignInAccount>) {
+    try {
+        val account = task.getResult(ApiException::class.java)
+        val googleIdToken = account.idToken ?: throw Exception("ID Token is null")
+        firebaseAuthWithGoogle(googleIdToken)
+    } catch (e: ApiException) {
+        Log.w(TAG, "Google sign-in failed: ${e.statusCode}")
+    }
+}
 
-  const response = await fetch("https://<BACKEND_DOMAIN>/api/auth/google", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      id_token: idToken,
-      device_info: {
-        device: "web",
-        userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown"
-      }
-    })
-  });
+private fun firebaseAuthWithGoogle(googleIdToken: String) {
+    val credential = GoogleAuthProvider.getCredential(googleIdToken, null)
+    FirebaseAuth.getInstance().signInWithCredential(credential)
+        .addOnSuccessListener { authResult ->
+            authResult.user?.getIdToken(false)?.addOnSuccessListener { tokenResult ->
+                val firebaseIdToken = tokenResult.token ?: return@addOnSuccessListener
+                sendTokenToBackend(firebaseIdToken)
+            }
+        }
+        .addOnFailureListener { e ->
+            Log.e(TAG, "Firebase auth failed", e)
+        }
+}
 
-  const data = await response.json();
+private fun sendTokenToBackend(firebaseIdToken: String) {
+    // Use your HTTP client (Retrofit / OkHttp / Ktor) to POST to the backend
+    val body = mapOf(
+        "id_token" to firebaseIdToken,
+        "platform" to "android",
+        "device_info" to mapOf(
+            "device" to "android",
+            "model" to android.os.Build.MODEL
+        )
+    )
 
-  if (!response.ok || !data.success) {
-    // Handle error states here (show toast, etc.)
-    throw new Error(data?.error?.message || "Google sign-in failed");
-  }
-
-  // Persist tokens & user info in your auth store
-  const {
-    access_token,
-    refresh_token,
-    token_type,
-    expires_in,
-    user
-  } = data.data;
-
-  // Example:
-  // authStore.setSession({ access_token, refresh_token, token_type, expires_in, user });
-
-  return data.data;
+    // Example using a coroutine + your ApiService:
+    viewModelScope.launch {
+        val response = apiService.googleLogin(body)
+        if (response.success) {
+            // Store response.data.access_token, refresh_token, user
+        }
+    }
 }
 ```
 
@@ -170,7 +210,7 @@ export async function loginOrSignupWithGoogle() {
       Authorization: Bearer <refresh_token>
       ```
 
-    - Response (simplified):
+    - Response:
 
       ```json
       {
@@ -183,27 +223,47 @@ export async function loginOrSignupWithGoogle() {
 
 ---
 
-### Backend Configuration Requirements (for Google / Firebase)
+### Backend Configuration (GitHub Secrets)
 
-The backend verifies Google/Firebase ID tokens via **Firebase Admin SDK**. Make sure the following is set in environment/config (one of these is enough):
+The backend verifies Google/Firebase ID tokens via **Firebase Admin SDK** and optionally enforces that only Android app tokens are accepted. Configure these secrets in **GitHub → Repository Settings → Secrets and variables → Actions**:
 
-- **Option 1 (recommended)**: `FIREBASE_SERVICE_ACCOUNT_B64`  
-  - Base64-encoded contents of your Firebase service account JSON.
-- **Option 2**: `FIREBASE_SERVICE_ACCOUNT_JSON`  
-  - Raw JSON string of the service account.
-- **Option 3**: `FIREBASE_SERVICE_ACCOUNT_PATH`  
-  - Filesystem path to the service account JSON file.
+| Secret Name                    | Value                                                              | Required |
+|--------------------------------|--------------------------------------------------------------------|----------|
+| `FIREBASE_PROJECT_ID`          | Your Firebase project ID (e.g. `my-app-12345`)                    | ✅ Yes   |
+| `FIREBASE_SERVICE_ACCOUNT_B64` | Base64-encoded Firebase service account JSON *(see below)*        | ✅ Yes   |
+| `FIREBASE_ANDROID_CLIENT_ID`   | Android OAuth2 client ID from `google-services.json` *(see below)*| ✅ Recommended |
 
-The Firebase project used by the **frontend** must match the project configured via these credentials so that ID tokens validate correctly.
+#### How to get `FIREBASE_SERVICE_ACCOUNT_B64`
+
+1. Firebase Console → Project Settings → Service accounts → **Generate new private key**
+2. Download the JSON file.
+3. Base64-encode it:
+   ```bash
+   base64 -w 0 firebase-service-account.json
+   ```
+4. Paste the output as the `FIREBASE_SERVICE_ACCOUNT_B64` secret.
+
+#### How to get `FIREBASE_ANDROID_CLIENT_ID`
+
+1. Open your `google-services.json` (download from Firebase Console → Project Settings → Your Android app).
+2. Find the `oauth_client` array and look for `"client_type": 3` (that's the Android client).
+3. Copy the `client_id` value — it looks like:
+   ```
+   123456789012-abcdefghijklmnopqrstuvwxyz012345.apps.googleusercontent.com
+   ```
+4. Add it as the `FIREBASE_ANDROID_CLIENT_ID` GitHub secret.
+
+> When `FIREBASE_ANDROID_CLIENT_ID` is set, the backend verifies that the token's `aud` claim matches this ID, rejecting any token issued from a web or other platform Firebase project.
 
 ---
 
-### Quick Checklist for Frontend Dev
+### Quick Checklist for Android Dev
 
-- [ ] Set up Firebase Web app with **Google sign-in** enabled.
-- [ ] Implement Google sign-in to get **`id_token`** from Firebase.
-- [ ] Call `POST /api/auth/google` with `{ id_token, device_info }`.
+- [ ] Add `google-services.json` to the Android app module.
+- [ ] Enable **Google** sign-in in Firebase Console → Authentication → Sign-in methods.
+- [ ] Implement Google sign-in flow to get the Firebase `id_token`.
+- [ ] Call `POST /api/auth/google` with `{ id_token, platform: "android", device_info }`.
 - [ ] On success, store `access_token`, `refresh_token`, and `user`.
 - [ ] Use `Authorization: Bearer <access_token>` for subsequent API calls.
 - [ ] Use `POST /api/auth/refresh` with the refresh token when needed.
-
+- [ ] Add `FIREBASE_ANDROID_CLIENT_ID` to GitHub secrets for production enforcement.

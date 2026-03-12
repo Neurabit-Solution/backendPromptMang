@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..core import security, database
 from ..core.config import settings
-from ..core.firebase import verify_firebase_id_token, get_firebase_status
+from ..core.firebase import verify_firebase_android_token, get_firebase_status
 from ..models import user as models
 from ..schemas import user as schemas
 from datetime import timedelta
@@ -137,9 +137,24 @@ def signup(user: schemas.UserCreate, db: Session = Depends(get_db)):
 def login_with_google(google_data: schemas.GoogleLoginRequest, db: Session = Depends(get_db)):
     """
     Login or signup using a Firebase Google ID token.
+    Only accepts tokens originating from the Android app.
     """
+    # Enforce Android-only: reject requests that declare a non-android platform
+    platform = (google_data.platform or "").lower().strip()
+    if platform and platform != "android":
+        return JSONResponse(
+            status_code=status.HTTP_403_FORBIDDEN,
+            content={
+                "success": False,
+                "error": {
+                    "code": "PLATFORM_NOT_ALLOWED",
+                    "message": "Google sign-in is only supported on the Android app.",
+                },
+            },
+        )
+
     try:
-        decoded_token = verify_firebase_id_token(google_data.id_token)
+        decoded_token = verify_firebase_android_token(google_data.id_token)
     except ValueError as e:
         cause = e.__cause__
         logger.warning(
