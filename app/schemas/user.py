@@ -13,6 +13,12 @@ class UserCreate(UserBase):
     password: constr(min_length=8)
     referral_code: Optional[str] = None
 
+# Properties to receive for profile update
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+
 # Properties to return via API
 class User(UserBase):
     id: int

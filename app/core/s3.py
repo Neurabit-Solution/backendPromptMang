@@ -116,6 +116,24 @@ def upload_creation_generated(file_bytes: bytes, user_id: int, content_type: str
     return _build_url(key)
 
 
+def upload_avatar(file_bytes: bytes, user_id: int, content_type: str = "image/jpeg") -> str:
+    """
+    Upload a user profile avatar.
+    S3 key: users/avatars/<user_id>/avatar.jpg (overwrites existing)
+    """
+    s3 = get_s3_client()
+    ext = "jpg" if "jpeg" in content_type else content_type.split("/")[-1]
+    key = f"users/avatars/{user_id}/avatar.{ext}"
+
+    s3.put_object(
+        Bucket=settings.AWS_S3_BUCKET,
+        Key=key,
+        Body=file_bytes,
+        ContentType=content_type,
+    )
+    return _build_url(key)
+
+
 
 def _build_url(key: str) -> str:
     """Build the public HTTPS URL for an S3 object."""
@@ -166,3 +184,35 @@ def get_proxy_url(s3_url: str) -> str:
     serve direct S3 URLs to the frontend for better performance.
     """
     return s3_url or ""
+
+
+def delete_user_objects(user_id: int):
+    """
+    Delete all S3 objects associated with a user.
+    Folders: creations/originals/<user_id>/ and creations/generated/<user_id>/
+    """
+    s3 = get_s3_client()
+    bucket = settings.AWS_S3_BUCKET
+    
+    prefixes = [
+        f"creations/originals/{user_id}/",
+        f"creations/generated/{user_id}/"
+    ]
+    
+    for prefix in prefixes:
+        try:
+            # List all objects with the prefix
+            paginator = s3.get_paginator('list_objects_v2')
+            pages = paginator.paginate(Bucket=bucket, Prefix=prefix)
+            
+            for page in pages:
+                if 'Contents' in page:
+                    delete_keys = [{'Key': obj['Key']} for obj in page['Contents']]
+                    if delete_keys:
+                        s3.delete_objects(
+                            Bucket=bucket,
+                            Delete={'Objects': delete_keys}
+                        )
+                        print(f"Deleted {len(delete_keys)} objects from {prefix}")
+        except ClientError as e:
+            print(f"Error deleting S3 objects for user {user_id} in {prefix}: {e}")

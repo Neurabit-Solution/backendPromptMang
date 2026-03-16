@@ -136,3 +136,20 @@ class GuestUsage(Base):
     device_id    = Column(String(100), unique=True, index=True, nullable=False)
     style_id     = Column(Integer, ForeignKey("styles.id"), nullable=True)
     created_at   = Column(DateTime(timezone=True), server_default=func.now())
+
+
+from sqlalchemy import UniqueConstraint
+
+class CreationLike(Base):
+    """
+    Tracks which user liked which creation to prevent multiple likes.
+    """
+    __tablename__ = "creation_likes"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    user_id      = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    creation_id  = Column(Integer, ForeignKey("creations.id"), index=True, nullable=False)
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Ensure one user can only like a creation once
+    __table_args__ = (UniqueConstraint('user_id', 'creation_id', name='_user_creation_like_uc'),)

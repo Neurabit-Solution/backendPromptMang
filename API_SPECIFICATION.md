@@ -365,23 +365,67 @@ interface ProfileResponse {
 }
 ```
 
-#### PUT `/api/users/profile`
+#### PUT `/api/auth/profile`
 
-```typescript
-// Request (multipart/form-data for avatar upload)
-interface UpdateProfileRequest {
-  name?: string;
-  avatar?: File;  // Image file
-  phone?: string;
+**Purpose**: Update user's basic profile information.
+
+**Request Body**:
+```json
+{
+  "name": "New Name",
+  "phone": "+919876543210",
+  "avatar_url": "https://..."
 }
+```
+*All fields are optional.*
 
-// Response
+**Response**:
+```json
 {
   "success": true,
-  "data": User,
+  "data": { "user": { ... } },
   "message": "Profile updated successfully"
 }
 ```
+
+#### POST `/api/auth/profile/avatar`
+
+**Purpose**: Upload a new profile picture.
+
+**Request**:
+- Multipart Form Data
+- `file`: Image file (JPG, PNG, WebP, max 5MB)
+
+**Response**:
+```json
+{
+  "success": true,
+  "data": { "avatar_url": "https://..." },
+  "message": "Avatar uploaded successfully"
+}
+```
+
+#### DELETE `/api/auth/account`
+
+**Purpose**: Permanently delete the user's account and all associated data.
+
+**Request**:
+- Requires Bearer authentication (Access Token)
+
+**Response (Success - 200)**:
+```json
+{
+  "success": true,
+  "message": "Account and all associated data have been permanently deleted."
+}
+```
+
+**What is deleted**:
+- User profile and authentication data.
+- All AI-generated creations.
+- Original and generated images from S3 storage.
+- Like and vote history.
+- Credit balance and transaction history.
 
 ---
 

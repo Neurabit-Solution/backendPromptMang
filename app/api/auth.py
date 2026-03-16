@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -336,6 +336,64 @@ def get_me(current_user: models.User = Depends(get_current_user)):
     }
 
 
+@router.put("/profile")
+def update_profile(
+    user_update: schemas.UserUpdate,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update user profile information (name, phone, avatar_url)."""
+    if user_update.name is not None:
+        current_user.name = user_update.name
+    if user_update.phone is not None:
+        current_user.phone = user_update.phone
+    if user_update.avatar_url is not None:
+        current_user.avatar_url = user_update.avatar_url
+    
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    
+    return {
+        "success": True,
+        "data": {"user": current_user},
+        "message": "Profile updated successfully"
+    }
+
+
+@router.post("/profile/avatar")
+async def upload_user_avatar(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Upload and set a new profile avatar."""
+    from ..core import s3
+    
+    # Validate image
+    if file.content_type not in ["image/jpeg", "image/png", "image/webp"]:
+        raise HTTPException(status_code=400, detail="Invalid image format (JPG, PNG, WebP only)")
+    
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024: # 5MB limit
+        raise HTTPException(status_code=413, detail="Image too large (max 5MB)")
+    
+    # Upload to S3
+    avatar_url = s3.upload_avatar(contents, current_user.id, file.content_type)
+    
+    # Update user record
+    current_user.avatar_url = avatar_url
+    db.add(current_user)
+    db.commit()
+    db.refresh(current_user)
+    
+    return {
+        "success": True,
+        "data": {"avatar_url": avatar_url},
+        "message": "Avatar uploaded successfully"
+    }
+
+
 @router.post("/refresh", response_model=schemas.Token)
 def refresh_token(token: str = Depends(security.oauth2_scheme), db: Session = Depends(get_db)):
     # Note: In a real implementation using OAuth2PasswordBearer, the token is extracted from Authorization header.
@@ -365,4 +423,36 @@ def refresh_token(token: str = Depends(security.oauth2_scheme), db: Session = De
         "refresh_token": token, # Return same or new one
         "token_type": "bearer",
         "expires_in": 1800
+    }
+
+@router.delete("/account")
+def delete_account(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Permanently delete the user account and all associated data.
+    This includes:
+    1. All creations and their images in S3.
+    2. All likes, votes, and battle history.
+    3. Credit transactions and ad watch history.
+    4. The user profile itself.
+    """
+    from ..core.s3 import delete_user_objects
+    
+    user_id = current_user.id
+    
+    # 1. Delete S3 objects first (optional but good to do before DB record is gone, 
+    # though we have user_id from current_user)
+    delete_user_objects(user_id)
+    
+    # 2. Delete user from DB
+    # The cascading deletes in the database schema will handle:
+    # creations, likes, votes, credit_transactions, ad_watches
+    db.delete(current_user)
+    db.commit()
+    
+    return {
+        "success": True,
+        "message": "Account and all associated data have been permanently deleted."
     }

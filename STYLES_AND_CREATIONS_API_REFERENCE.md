@@ -24,7 +24,9 @@ Content-Type: multipart/form-data     (for file upload requests)
 3. [GET /api/categories](#3-get-apicategories)
 4. [POST /api/creations/generate](#4-post-apicreationsgenerate)
 5. [GET /api/creations/mine](#5-get-apicreationsmine)
-6. [Error Reference](#6-error-reference)
+6. [GET /api/creations/feed](#6-get-apicreationsfeed)
+7. [POST /api/creations/{id}/like](#7-post-apicreationsidlike)
+8. [Error Reference](#8-error-reference)
 
 ---
 
@@ -477,7 +479,88 @@ No query parameters needed.
 
 ---
 
-## 6. Error Reference
+## 6. GET /api/creations/feed
+
+Returns public creations from all users, sorted by the highest like count first. Used to render the "Explore" or "Community" section.
+
+**Auth required:** No
+
+### Request
+
+```
+GET /api/creations/feed
+```
+
+#### Optional Query Parameters
+
+| Parameter | Type | Description | Example |
+|---|---|---|---|
+| `skip` | integer | Number of items to skip (pagination) | `?skip=20` |
+| `limit` | integer | Max number of items to return | `?limit=50` |
+
+### Response — 200 OK
+
+```json
+{
+  "success": true,
+  "total": 20,
+  "data": [
+    {
+      "id": 105,
+      "original_image_url": "...",
+      "generated_image_url": "...",
+      "thumbnail_url": "...",
+      "style": { ... },
+      "user_name": "Rohan Sharma",
+      "likes_count": 1250,
+      "mood": "happy",
+      "is_public": true,
+      "created_at": "2026-03-15T10:00:00.000Z"
+    },
+    {
+      "id": 120,
+      "original_image_url": "...",
+      "generated_image_url": "...",
+      "thumbnail_url": "...",
+      "style": { ... },
+      "user_name": "Anonymous",
+      "likes_count": 980,
+      "mood": "dramatic",
+      "is_public": true,
+      "created_at": "2026-03-14T12:30:00.000Z"
+    }
+  ]
+}
+```
+
+---
+
+## 7. POST /api/creations/{id}/like
+
+Increments the like count for a specific creation.
+
+**Auth required:** Yes (User must be logged in to like)
+
+### Request
+
+```
+POST /api/creations/105/like
+Authorization: Bearer <access_token>
+```
+
+### Response — 200 OK
+
+```json
+{
+  "success": true,
+  "message": "Liked successfully",
+  "likes_count": 1251
+}
+```
+
+---
+
+## 8. Error Reference
 
 ### Common Error Codes
 
@@ -515,11 +598,13 @@ Response:
 
 | Method | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/api/styles` | ✅ | All styles (filterable) |
-| `GET` | `/api/styles/trending` | ✅ | Top 10 trending styles |
-| `GET` | `/api/categories` | ✅ | All categories |
+| `GET` | `/api/styles` | ❌ | All styles (filterable) |
+| `GET` | `/api/styles/trending` | ❌ | Top 10 trending styles |
+| `GET` | `/api/categories` | ❌ | All categories |
 | `POST` | `/api/creations/generate` | ✅ | Generate AI image |
 | `GET` | `/api/creations/mine` | ✅ | My creation history |
+| `GET` | `/api/creations/feed` | ❌ | Community Feed (sorted by likes) |
+| `POST` | `/api/creations/{id}/like` | ✅ | Like a creation |
 | `POST` | `/api/auth/login` | ❌ | Login |
 | `POST` | `/api/auth/signup` | ❌ | Register |
 | `POST` | `/api/auth/refresh` | ✅ (refresh token) | Refresh access token |

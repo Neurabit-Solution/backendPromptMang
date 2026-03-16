@@ -1,8 +1,10 @@
 """
 Creations API
 -------------
-POST /api/creations/generate  → upload image + style_id → Gemini → save to S3 → return result
-GET  /api/creations/mine      → current user's creation history
+POST /api/creations/generate      → upload image + style_id → Gemini → save to S3 → return result
+GET  /api/creations/mine          → current user's creation history
+GET  /api/creations/feed          → community feed (sorted by likes)
+POST /api/creations/{id}/like     → like a creation
 """
 
 import time
@@ -14,8 +16,7 @@ from typing import Optional
 from app.core.database import get_db
 from app.core import security, s3 as s3_service, gemini as gemini_service
 from app.models.user import User
-from app.models.style import Style, Category
-from app.models.style import Creation
+from app.models.style import Style, Category, Creation, CreationLike
 from app.schemas.style import GenerateResponse, CreationOut, StyleOut, CategoryOut
 from app.core.config import settings
 from datetime import datetime, timezone
@@ -49,7 +50,7 @@ def get_current_user(
 
 from app.core.s3 import get_proxy_url
 
-def _creation_to_out(creation: Creation, credits_remaining: int) -> CreationOut:
+def _creation_to_out(creation: Creation, credits_remaining: Optional[int] = None) -> CreationOut:
     style = creation.style
     cat = style.category
     return CreationOut(
@@ -78,6 +79,8 @@ def _creation_to_out(creation: Creation, credits_remaining: int) -> CreationOut:
             tags=style.tags or [],
             credits_required=style.credits_required,
         ),
+        user_name=creation.user.name if creation.user else "Anonymous",
+        likes_count=creation.likes_count or 0,
         mood=creation.mood,
         weather=creation.weather,
         dress_style=creation.dress_style,
@@ -289,3 +292,75 @@ def my_creations(
 
     data = [_creation_to_out(c, credits_remaining=current_user.credits) for c in creations]
     return {"success": True, "data": data, "total": len(data)}
+
+
+# ─── Community Feed ───────────────────────────────────────────────────────────
+
+@router.get("/feed")
+def get_community_feed(
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    """
+    Returns public creations sorted by highest like count first.
+    """
+    creations = (
+        db.query(Creation)
+        .options(
+            joinedload(Creation.style).joinedload(Style.category),
+            joinedload(Creation.user)
+        )
+        .filter(Creation.is_public == True, Creation.is_deleted == False)
+        .order_by(Creation.likes_count.desc(), Creation.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    data = [_creation_to_out(c) for c in creations]
+    return {"success": True, "data": data, "total": len(data)}
+
+
+# ─── Interactions ─────────────────────────────────────────────────────────────
+
+@router.post("/{creation_id}/like")
+def like_creation(
+    creation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Increments the like count for a specific creation (only once per user).
+    """
+    creation = db.query(Creation).filter(Creation.id == creation_id, Creation.is_deleted == False).first()
+    if not creation:
+        raise HTTPException(status_code=404, detail="Creation not found")
+
+    # Check if user already liked this
+    existing_like = db.query(CreationLike).filter(
+        CreationLike.user_id == current_user.id,
+        CreationLike.creation_id == creation_id
+    ).first()
+
+    if existing_like:
+        return {
+            "success": False,
+            "message": "You have already liked this creation",
+            "likes_count": creation.likes_count
+        }
+
+    # Record the like
+    new_like = CreationLike(user_id=current_user.id, creation_id=creation_id)
+    db.add(new_like)
+
+    # Increment count
+    creation.likes_count = (creation.likes_count or 0) + 1
+    db.commit()
+    db.refresh(creation)
+
+    return {
+        "success": True,
+        "message": "Liked successfully",
+        "likes_count": creation.likes_count
+    }

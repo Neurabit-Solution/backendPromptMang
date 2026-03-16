@@ -58,12 +58,14 @@ class CreationOut(BaseModel):
     generated_image_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
     style: StyleOut
+    user_name: Optional[str] = None
+    likes_count: int = 0
     mood: Optional[str] = None
     weather: Optional[str] = None
     dress_style: Optional[str] = None
     is_public: bool
     credits_used: int
-    credits_remaining: int
+    credits_remaining: Optional[int] = None
     processing_time: Optional[float] = None
     created_at: datetime
 
