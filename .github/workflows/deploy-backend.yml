@@ -53,6 +53,11 @@ jobs:
             FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
             FIREBASE_SERVICE_ACCOUNT_B64=${{ secrets.FIREBASE_SERVICE_ACCOUNT_B64 }}
             FIREBASE_ANDROID_CLIENT_ID=${{ secrets.FIREBASE_ANDROID_CLIENT_ID }}
+
+            # Credits / Referrals
+            SIGNUP_INITIAL_CREDITS=${{ secrets.SIGNUP_INITIAL_CREDITS }}
+            DAILY_FREE_CREDITS=${{ secrets.DAILY_FREE_CREDITS }}
+            REFERRAL_REWARD_CREDITS=${{ secrets.REFERRAL_REWARD_CREDITS }}
             EOF
 
             echo "Stopping old containers (if any)..."

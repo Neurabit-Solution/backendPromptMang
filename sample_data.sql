@@ -166,13 +166,13 @@ INSERT INTO users (email, hashed_password, name, phone, referral_code, credits, 
     'Demo User',
     '+919999999999',
     'DEMO1234',
-    2500,
+    2,
     true
 );
 
 -- Log the signup bonus transaction
 INSERT INTO credit_transactions (user_id, amount, type, description, balance_after) VALUES
-(1, 2500, 'signup_bonus', 'Welcome bonus for new account', 2500);
+(1, 2, 'signup_bonus', 'Welcome bonus for new account', 2);
 
 -- ============================================================
 -- COMPLETED!

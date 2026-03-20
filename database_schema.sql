@@ -29,7 +29,7 @@ CREATE TABLE users (
     hashed_password VARCHAR(255) NOT NULL,
     name VARCHAR(100) NOT NULL,
     avatar_url VARCHAR(500),
-    credits INTEGER DEFAULT 2500 CHECK (credits >= 0),
+    credits INTEGER DEFAULT 2 CHECK (credits >= 0),
     referral_code VARCHAR(10) UNIQUE NOT NULL,
     referred_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     is_verified BOOLEAN DEFAULT FALSE,
@@ -40,7 +40,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
+ 
 -- Indexes for users table
 CREATE INDEX idx_users_email ON users(email);
 CREATE INDEX idx_users_referral_code ON users(referral_code);
