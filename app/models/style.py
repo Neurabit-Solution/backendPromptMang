@@ -57,7 +57,7 @@ class Style(Base):
 
     # Metadata / discovery
     tags             = Column(JSON, default=list)   # ["anime", "artistic", "colorful"]
-    credits_required = Column(Integer, default=50)
+    credits_required = Column(Integer, default=1)
 
     # Stats (auto-incremented on each use)
     uses_count       = Column(Integer, default=0)
@@ -74,6 +74,38 @@ class Style(Base):
     # Relationships
     category   = relationship("Category", back_populates="styles")
     creations  = relationship("Creation", back_populates="style")
+
+
+class Challenge(Base):
+    """
+    Weekly or daily Mystery Prompt Challenges.
+    - Type 'mystery': Users try to match the aesthetic of 'target_image_url'.
+    - Type 'collaborative': Community builds a story; winner of day N is inspiration for day N+1.
+    """
+    __tablename__ = "challenges"
+
+    id                  = Column(Integer, primary_key=True, index=True)
+    name                = Column(String(100), nullable=False)
+    description         = Column(Text, nullable=True)
+    
+    # For 'mystery', this is the image to match.
+    # For 'collaborative', this is the previous day's winner image.
+    target_image_url    = Column(String(500), nullable=False)
+    prompt_template     = Column(Text, nullable=False)
+    
+    challenge_type      = Column(String(50), default="mystery") # 'mystery', 'collaborative'
+    day_number          = Column(Integer, default=1)           # 1-7 for collaborative
+    group_id            = Column(Integer, nullable=True)       # unique ID for a 7-day sequence
+    previous_winner_id  = Column(Integer, ForeignKey("creations.id", use_alter=True, name="fk_challenge_winner"), nullable=True)
+
+    starts_at           = Column(DateTime(timezone=True), server_default=func.now())
+    ends_at             = Column(DateTime(timezone=True), nullable=False)
+    is_active           = Column(Boolean, default=True)
+    created_at          = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    creations = relationship("Creation", back_populates="challenge", foreign_keys="Creation.challenge_id")
+    winner    = relationship("Creation", foreign_keys=[previous_winner_id], post_update=True)
 
 
 class Creation(Base):
@@ -106,7 +138,12 @@ class Creation(Base):
     # --- Audit / Debug ---
     # The exact final prompt that was sent to Gemini (template + user inputs merged)
     prompt_used          = Column(Text, nullable=True)
-    credits_used         = Column(Integer, default=50)
+    credits_used         = Column(Integer, default=1)
+    
+    # Challenge Link
+    challenge_id         = Column(Integer, ForeignKey("challenges.id"), nullable=True)
+    similarity_score     = Column(Float, default=0)
+    
     processing_time      = Column(Float, nullable=True)          # seconds Gemini took
 
     # --- Stats ---
@@ -121,8 +158,9 @@ class Creation(Base):
     created_at           = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    user   = relationship("User", back_populates="creations")
-    style  = relationship("Style", back_populates="creations")
+    user       = relationship("User", back_populates="creations")
+    style      = relationship("Style", back_populates="creations")
+    challenge  = relationship("Challenge", back_populates="creations", foreign_keys=[challenge_id])
 
 
 class GuestUsage(Base):

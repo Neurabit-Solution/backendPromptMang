@@ -175,6 +175,65 @@ INSERT INTO credit_transactions (user_id, amount, type, description, balance_aft
 (1, 2, 'signup_bonus', 'Welcome bonus for new account', 2);
 
 -- ============================================================
+-- SAMPLE CHALLENGES
+-- ============================================================
+
+-- 1. Mystery Prompt Challenge
+INSERT INTO challenges (name, description, target_image_url, prompt_template, ends_at, challenge_type) VALUES
+(
+    'Neon Samurai Mystery',
+    'Try to match the exact aesthetic of this neon samurai!',
+    'https://placeholder-url.com/mystery-samurai.jpg',
+    'Transform this into a neon-light samurai in a futuristic Tokyo street, high contrast, cyberpunk style.',
+    '2026-12-31 23:59:59',
+    'mystery'
+);
+
+-- 2. Collaborative Story (Day 1)
+-- Day 1 winner is already set for this sample
+INSERT INTO challenges (name, description, target_image_url, prompt_template, group_id, day_number, ends_at, challenge_type) VALUES
+(
+    'The Great Space Odyssey - Day 1',
+    'Our story begins on a lonely desert planet. What does our hero see?',
+    'https://placeholder-url.com/canvas-intro.jpg',
+    'A vast orange desert landscape with two suns in the sky, cinematic wide shot, sci-fi concept art.',
+    7,
+    1,
+    '2024-01-01 00:00:00',
+    'collaborative'
+);
+
+-- Sample Creation as the winner of Day 1
+INSERT INTO creations (user_id, style_id, challenge_id, original_image_url, generated_image_url, thumbnail_url, prompt_used, likes_count) VALUES
+(
+    1,
+    1,
+    2,
+    'https://placeholder-url.com/orig1.jpg',
+    'https://placeholder-url.com/winner_day1.jpg',
+    'https://placeholder-url.com/winner_day1_thumb.jpg',
+    'A vast orange desert with two suns and a crashed spaceship.',
+    1250
+);
+
+-- Link winner to Day 1 challenge
+UPDATE challenges SET previous_winner_id = 1 WHERE id = 2;
+
+-- 3. Collaborative Story (Day 2 - Currently Active)
+INSERT INTO challenges (name, description, target_image_url, prompt_template, group_id, day_number, ends_at, challenge_type, previous_winner_id) VALUES
+(
+    'The Great Space Odyssey - Day 2',
+    'The community decided our hero found a crashed spaceship! Now, what happens inside?',
+    'https://placeholder-url.com/winner_day1.jpg',
+    'Interior of a futuristic abandoned spaceship, neon control panels, dark atmosphere, volumetric lighting.',
+    7,
+    2,
+    '2026-12-31 23:59:59',
+    'collaborative',
+    1
+);
+
+-- ============================================================
 -- COMPLETED!
 -- ============================================================
 -- Sample data inserted successfully

@@ -66,6 +66,8 @@ class CreationOut(BaseModel):
     is_public: bool
     credits_used: int
     credits_remaining: Optional[int] = None
+    similarity_score: float = 0
+    challenge_id: Optional[int] = None
     processing_time: Optional[float] = None
     created_at: datetime
 
@@ -73,3 +75,38 @@ class CreationOut(BaseModel):
 
 
 GenerateResponse.model_rebuild()
+
+
+# ─── Challenges ─────────────────────────────────────────────────────────────
+
+class ChallengeOut(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    target_image_url: str
+    challenge_type: str = "mystery"
+    day_number: int = 1
+    group_id: Optional[int] = None
+    previous_winner_id: Optional[int] = None
+    starts_at: datetime
+    ends_at: datetime
+    is_active: bool
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StoryStep(BaseModel):
+    day: int
+    image_url: str
+    winner_name: str
+    likes: int
+
+
+class ChallengeLeaderboardEntry(BaseModel):
+    id: int
+    user_name: str
+    avatar_url: Optional[str] = None
+    similarity_score: float
+    generated_image_url: str
+    created_at: datetime

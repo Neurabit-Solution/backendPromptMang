@@ -6,6 +6,7 @@ from app.api import auth
 from app.api.styles import router as styles_router, categories_router
 from app.api.creations import router as creations_router
 from app.api.guest import router as guest_router
+from app.api.challenges import router as challenges_router
 from app.core.database import engine, Base
 
 # Import all models so SQLAlchemy registers them before create_all()
@@ -57,6 +58,7 @@ app.include_router(styles_router, prefix="/api")
 app.include_router(categories_router, prefix="/api")
 app.include_router(creations_router, prefix="/api")
 app.include_router(guest_router, prefix="/api")
+app.include_router(challenges_router, prefix="/api")
 
 @app.get("/")
 def read_root():

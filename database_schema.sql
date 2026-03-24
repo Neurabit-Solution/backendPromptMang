@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS credit_transactions CASCADE;
 DROP TABLE IF EXISTS likes CASCADE;
 DROP TABLE IF EXISTS votes CASCADE;
 DROP TABLE IF EXISTS battles CASCADE;
+DROP TABLE IF EXISTS challenges CASCADE;
 DROP TABLE IF EXISTS creations CASCADE;
 DROP TABLE IF EXISTS styles CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
@@ -89,7 +90,7 @@ CREATE TABLE styles (
     prompt_template TEXT NOT NULL,
     negative_prompt TEXT,
     tags JSON DEFAULT '[]',
-    credits_required INTEGER DEFAULT 50,
+    credits_required INTEGER DEFAULT 1,
     uses_count INTEGER DEFAULT 0 CHECK (uses_count >= 0),
     is_trending BOOLEAN DEFAULT FALSE,
     is_new BOOLEAN DEFAULT FALSE,
@@ -163,7 +164,42 @@ COMMENT ON COLUMN creations.weather IS 'Optional: sunny, rainy, snowy, cloudy, n
 COMMENT ON COLUMN creations.dress_style IS 'Optional: casual, formal, traditional, fantasy';
 
 -- ============================================================
--- 5. BATTLES TABLE
+-- 5. CHALLENGES TABLE
+-- ============================================================
+-- Weekly or daily challenges (Mystery Prompt or Collaborative Canvas)
+
+CREATE TABLE challenges (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    
+    -- For 'mystery', the image to match.
+    -- For 'collaborative', the inspiration image (previous winner).
+    target_image_url VARCHAR(500) NOT NULL,
+    prompt_template TEXT NOT NULL,
+    
+    challenge_type VARCHAR(50) DEFAULT 'mystery', -- 'mystery', 'collaborative'
+    day_number INTEGER DEFAULT 1,
+    group_id INTEGER,
+    previous_winner_id INTEGER REFERENCES creations(id) ON DELETE SET NULL,
+    
+    is_active BOOLEAN DEFAULT TRUE,
+    starts_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    ends_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_challenges_is_active ON challenges(is_active);
+CREATE INDEX idx_challenges_type ON challenges(challenge_type);
+CREATE INDEX idx_challenges_group ON challenges(group_id);
+
+COMMENT ON TABLE challenges IS 'AI generation challenges for user engagement';
+COMMENT ON COLUMN challenges.challenge_type IS 'mystery (match image) or collaborative (build story)';
+COMMENT ON COLUMN challenges.day_number IS 'Day sequence for collaborative story (1-7)';
+COMMENT ON COLUMN challenges.previous_winner_id IS 'Creation ID of the previous day winner (for inspiration)';
+
+-- ============================================================
+-- 6. BATTLES TABLE
 -- ============================================================
 -- Style battles for voting/gamification
 
