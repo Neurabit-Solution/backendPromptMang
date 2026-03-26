@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from app.core.database import get_db
 from app.core import security, s3 as s3_service, gemini as gemini_service
 from app.models.user import User
+from app.models.style import Challenge, Creation
 from app.schemas.style import CreationOut, ChallengeOut, ChallengeLeaderboardEntry, StoryStep
 from app.core.config import settings
 

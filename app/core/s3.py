@@ -15,6 +15,9 @@ magicpic-bucket/
     │   └── <user_id>/<uuid>.jpg
     └── generated/               ← AI-transformed result
         └── <user_id>/<uuid>.jpg
+├── challenges/
+│   └── targets/                 ← mystery challenge target images
+│       └── <uuid>.jpg
 """
 
 import boto3
@@ -124,6 +127,25 @@ def upload_avatar(file_bytes: bytes, user_id: int, content_type: str = "image/jp
     s3 = get_s3_client()
     ext = "jpg" if "jpeg" in content_type else content_type.split("/")[-1]
     key = f"users/avatars/{user_id}/avatar.{ext}"
+
+    s3.put_object(
+        Bucket=settings.AWS_S3_BUCKET,
+        Key=key,
+        Body=file_bytes,
+        ContentType=content_type,
+    )
+    return _build_url(key)
+
+
+def upload_challenge_target_image(file_bytes: bytes, challenge_name: str, content_type: str = "image/jpeg") -> str:
+    """
+    Upload a target image for a mystery prompt challenge.
+    S3 key: challenges/targets/<uuid>.jpg
+    """
+    s3 = get_s3_client()
+    ext = "jpg" if "jpeg" in content_type else content_type.split("/")[-1]
+    # Use UUID to avoid collisions for the same challenge name if re-uploaded
+    key = f"challenges/targets/{uuid.uuid4()}.{ext}"
 
     s3.put_object(
         Bucket=settings.AWS_S3_BUCKET,
