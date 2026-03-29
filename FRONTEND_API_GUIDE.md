@@ -105,8 +105,8 @@ Most endpoints (except for viewing styles and the community feed) require a vali
 
 ### Community Feed (Explore)
 **Endpoint**: `GET /api/creations/feed`  
-**Auth Required**: ❌ No
-**Purpose**: Returns public creations sorted by **highest like count first**.
+**Auth Required**: ❌ No (Optional)
+**Purpose**: Returns public creations sorted by **highest like count first**. If a token is provided, `is_liked` will indicate if the user has liked each item.
 
 #### Optional Query Parameters
 | Parameter | Type | Description |
@@ -126,6 +126,7 @@ Most endpoints (except for viewing styles and the community feed) require a vali
       "thumbnail_url": "...",
       "user_name": "Rohan Sharma",
       "likes_count": 1250,
+      "is_liked": true,
       "created_at": "..."
     }
   ]
@@ -154,6 +155,20 @@ Most endpoints (except for viewing styles and the community feed) require a vali
   "likes_count": 1250
 }
 ```
+
+### Get Creation Details
+**Endpoint**: `GET /api/creations/{id}`  
+**Auth Required**: ❌ No (Optional)
+**Purpose**: View a single creation. If it's private, only the owner can see it.
+
+### Toggle Visibility
+**Endpoint**: `PATCH /api/creations/{id}/visibility`  
+**Auth Required**: ✅ Yes
+**Purpose**: Make an existing creation public or private.
+
+#### Request Payload (Multipart/Form-Data)
+- **Field Name**: `is_public`
+- **Type**: Boolean (`true` or `false`)
 
 ---
 

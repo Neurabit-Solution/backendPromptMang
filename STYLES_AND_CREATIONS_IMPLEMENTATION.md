@@ -111,6 +111,7 @@ One row per AI generation. Records the full audit trail of every image transform
 | `credits_used` | Integer | Credits deducted for this specific generation |
 | `processing_time` | Float | Seconds Gemini took to generate |
 | `likes_count` | Integer | Social likes received |
+| `is_liked` | Boolean | **New:** Whether the *current* user has liked this |
 | `views_count` | Integer | View count |
 | `is_public` | Boolean | Whether it appears in the community feed |
 | `is_featured` | Boolean | Admin flag to highlight exceptional results |

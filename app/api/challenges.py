@@ -52,7 +52,7 @@ def get_current_challenge(db: Session = Depends(get_db)):
     challenge = (
         db.query(Challenge)
         .filter(Challenge.is_active == True, Challenge.starts_at <= now, Challenge.ends_at >= now)
-        .order_by(Challenge.challenge_type.desc()) # Prefer collaborative if both active?
+        .order_by(Challenge.challenge_type.desc(), Challenge.id.desc()) # Prefer mystery, then latest
         .first()
     )
     if not challenge:

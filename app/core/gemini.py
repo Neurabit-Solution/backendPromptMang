@@ -95,27 +95,43 @@ def build_final_prompt(
     weather: str | None = None,
     dress_style: str | None = None,
     custom_prompt: str | None = None,
+    negative_prompt: str | None = None,
 ) -> str:
     """
     Merge the style's base prompt template with the user's optional customisations
     into one final string sent to Gemini.
     """
-    parts = [prompt_template]
+    # Start with the core style instruction
+    full_instruction = [f"Base Style: {prompt_template}"]
 
+    # Add visual modifiers in a clear block
+    modifiers = []
     if mood:
-        parts.append(f"The mood should feel {mood}.")
+        modifiers.append(f"Atmosphere/Mood: {mood}")
     if weather:
-        parts.append(f"The weather/environment should look {weather}.")
+        modifiers.append(f"Environment/Weather: {weather}")
     if dress_style:
-        parts.append(f"The subject's clothing style should be {dress_style}.")
-    if custom_prompt:
-        parts.append(f"Additional instruction: {custom_prompt}")
+        modifiers.append(f"Subject Attire: {dress_style}")
+    
+    if modifiers:
+        full_instruction.append("Visual Enhancements: " + " | ".join(modifiers))
 
-    parts.append(
-        "Maintain the subject's facial features and identity. Output only the transformed image."
+    # Add user's custom instructions
+    if custom_prompt:
+        full_instruction.append(f"User Request: {custom_prompt}")
+
+    # Add negative constraints if any
+    if negative_prompt:
+        full_instruction.append(f"Exclusions (What to avoid): {negative_prompt}")
+
+    # Final grounding instructions for identity preserved generation
+    full_instruction.append(
+        "CRITICAL: Maintain the subject's exact facial features, bone structure, and identity from the original photo. "
+        "Apply the style and modifiers around the subject without distorting who they are. "
+        "Output ONLY the final transformed image data."
     )
 
-    return " ".join(parts)
+    return "\n\n".join(full_instruction)
 
 
 def calculate_similarity(

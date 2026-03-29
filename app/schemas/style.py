@@ -60,6 +60,7 @@ class CreationOut(BaseModel):
     style: StyleOut
     user_name: Optional[str] = None
     likes_count: int = 0
+    is_liked: bool = False
     mood: Optional[str] = None
     weather: Optional[str] = None
     dress_style: Optional[str] = None

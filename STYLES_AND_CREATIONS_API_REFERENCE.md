@@ -26,7 +26,9 @@ Content-Type: multipart/form-data     (for file upload requests)
 5. [GET /api/creations/mine](#5-get-apicreationsmine)
 6. [GET /api/creations/feed](#6-get-apicreationsfeed)
 7. [POST /api/creations/{id}/like](#7-post-apicreationsidlike)
-8. [Error Reference](#8-error-reference)
+8. [GET /api/creations/{id}](#8-get-apicreationsid)
+9. [PATCH /api/creations/{id}/visibility](#9-patch-apicreationsidvisibility)
+10. [Error Reference](#10-error-reference)
 
 ---
 
@@ -325,6 +327,9 @@ curl -X POST https://api.magicpic.app/api/creations/generate \
     "mood": "romantic",
     "weather": "rainy",
     "dress_style": null,
+    "user_name": "Jane Doe",
+    "likes_count": 0,
+    "is_liked": false,
     "is_public": true,
     "credits_used": 50,
     "credits_remaining": 2450,
@@ -447,6 +452,9 @@ No query parameters needed.
       "mood": "romantic",
       "weather": "rainy",
       "dress_style": null,
+      "user_name": "Jane Doe",
+      "likes_count": 12,
+      "is_liked": true,
       "is_public": true,
       "credits_used": 50,
       "credits_remaining": 2450,
@@ -467,6 +475,9 @@ No query parameters needed.
       "mood": null,
       "weather": null,
       "dress_style": "traditional",
+      "user_name": "Jane Doe",
+      "likes_count": 5,
+      "is_liked": false,
       "is_public": false,
       "credits_used": 50,
       "credits_remaining": 2500,
@@ -483,12 +494,13 @@ No query parameters needed.
 
 Returns public creations from all users, sorted by the highest like count first. Used to render the "Explore" or "Community" section.
 
-**Auth required:** No
+**Auth required:** Optional (Include token to receive `is_liked` status for each item).
 
 ### Request
 
 ```
 GET /api/creations/feed
+Authorization: Bearer <access_token> (Optional)
 ```
 
 #### Optional Query Parameters
@@ -513,6 +525,7 @@ GET /api/creations/feed
       "style": { ... },
       "user_name": "Rohan Sharma",
       "likes_count": 1250,
+      "is_liked": true,
       "mood": "happy",
       "is_public": true,
       "created_at": "2026-03-15T10:00:00.000Z"
@@ -525,6 +538,7 @@ GET /api/creations/feed
       "style": { ... },
       "user_name": "Anonymous",
       "likes_count": 980,
+      "is_liked": false,
       "mood": "dramatic",
       "is_public": true,
       "created_at": "2026-03-14T12:30:00.000Z"
@@ -560,7 +574,66 @@ Authorization: Bearer <access_token>
 
 ---
 
-## 8. Error Reference
+## 8. GET /api/creations/{id}
+
+Returns details of a single creation. Includes privacy protection.
+
+**Auth required:** Optional (Owner can see private creations, others cannot).
+
+### Request
+
+```
+GET /api/creations/105
+Authorization: Bearer <access_token> (Optional)
+```
+
+### Response Success — 200 OK
+
+Returns a standard `CreationOut` object.
+
+### Response Error — 403 Forbidden
+
+```json
+{
+  "detail": "This creation is private"
+}
+```
+
+---
+
+## 9. PATCH /api/creations/{id}/visibility
+
+Update whether a creation is public or private.
+
+**Auth required:** Yes (User must own the creation).
+
+### Request
+
+```
+PATCH /api/creations/105/visibility
+Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+```
+
+#### Form Parameters
+
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `is_public` | boolean | ✅ | `true` for public, `false` for private |
+
+### Response Success — 200 OK
+
+```json
+{
+  "success": true,
+  "message": "Creation visibility updated to private",
+  "is_public": false
+}
+```
+
+---
+
+## 10. Error Reference
 
 ### Common Error Codes
 
@@ -603,7 +676,9 @@ Response:
 | `GET` | `/api/categories` | ❌ | All categories |
 | `POST` | `/api/creations/generate` | ✅ | Generate AI image |
 | `GET` | `/api/creations/mine` | ✅ | My creation history |
-| `GET` | `/api/creations/feed` | ❌ | Community Feed (sorted by likes) |
+| `GET` | `/api/creations/feed` | ❌ (Optional) | Community Feed (sorted by likes) |
+| `GET` | `/api/creations/{id}` | ❌ (Optional) | Single creation view (Owner/Public) |
+| `PATCH` | `/api/creations/{id}/visibility` | ✅ | Change public/private toggle |
 | `POST` | `/api/creations/{id}/like` | ✅ | Like a creation |
 | `POST` | `/api/auth/login` | ❌ | Login |
 | `POST` | `/api/auth/signup` | ❌ | Register |

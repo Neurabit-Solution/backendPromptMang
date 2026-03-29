@@ -45,12 +45,32 @@ def get_current_user(
     return user
 
 
+def get_optional_user(
+    token: Optional[str] = Depends(security.oauth2_scheme_optional),
+    db: Session = Depends(get_db),
+) -> Optional[User]:
+    """Helper for endpoints that can be public but also respect authentication if provided."""
+    if not token:
+        return None
+    try:
+        payload = security.verify_token(token)
+        if not payload or payload.get("type") != "access":
+            return None
+        return db.query(User).filter(User.email == payload.get("sub")).first()
+    except Exception:
+        return None
+
+
 # ─── Helper ───────────────────────────────────────────────────────────────────
 
 
 from app.core.s3 import get_proxy_url
 
-def _creation_to_out(creation: Creation, credits_remaining: Optional[int] = None) -> CreationOut:
+def _creation_to_out(
+    creation: Creation,
+    credits_remaining: Optional[int] = None,
+    is_liked: bool = False
+) -> CreationOut:
     style = creation.style
     cat = style.category
     return CreationOut(
@@ -81,6 +101,7 @@ def _creation_to_out(creation: Creation, credits_remaining: Optional[int] = None
         ),
         user_name=creation.user.name if creation.user else "Anonymous",
         likes_count=creation.likes_count or 0,
+        is_liked=is_liked,
         mood=creation.mood,
         weather=creation.weather,
         dress_style=creation.dress_style,
@@ -188,6 +209,7 @@ async def generate_image(
             weather=weather,
             dress_style=dress_style,
             custom_prompt=custom_prompt,
+            negative_prompt=style.negative_prompt,
         )
 
         # ── 5. Call Gemini ─────────────────────────────────────────────────────
@@ -290,7 +312,20 @@ def my_creations(
         .all()
     )
 
-    data = [_creation_to_out(c, credits_remaining=current_user.credits) for c in creations]
+    # Get liked creations to set is_liked correctly
+    liked_ids = {
+        like.creation_id for like in db.query(CreationLike.creation_id)
+        .filter(CreationLike.user_id == current_user.id)
+        .all()
+    }
+
+    data = [
+        _creation_to_out(
+            c, 
+            credits_remaining=current_user.credits, 
+            is_liked=(c.id in liked_ids)
+        ) for c in creations
+    ]
     return {"success": True, "data": data, "total": len(data)}
 
 
@@ -300,7 +335,8 @@ def my_creations(
 def get_community_feed(
     skip: int = 0,
     limit: int = 20,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """
     Returns public creations sorted by highest like count first.
@@ -318,7 +354,16 @@ def get_community_feed(
         .all()
     )
 
-    data = [_creation_to_out(c) for c in creations]
+    # Get liked creations if user is logged in
+    liked_ids = set()
+    if current_user:
+        liked_ids = {
+            like.creation_id for like in db.query(CreationLike.creation_id)
+            .filter(CreationLike.user_id == current_user.id)
+            .all()
+        }
+
+    data = [_creation_to_out(c, is_liked=(c.id in liked_ids)) for c in creations]
     return {"success": True, "data": data, "total": len(data)}
 
 
@@ -363,4 +408,72 @@ def like_creation(
         "success": True,
         "message": "Liked successfully",
         "likes_count": creation.likes_count
+    }
+
+
+@router.get("/{creation_id}", response_model=CreationOut)
+def get_creation_detail(
+    creation_id: int,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_user)
+):
+    """
+    Returns the details of a single creation if:
+    1. It is public, OR
+    2. The requester is the owner.
+    """
+    creation = (
+        db.query(Creation)
+        .options(joinedload(Creation.style).joinedload(Style.category), joinedload(Creation.user))
+        .filter(Creation.id == creation_id, Creation.is_deleted == False)
+        .first()
+    )
+
+    if not creation:
+        raise HTTPException(status_code=404, detail="Creation not found")
+
+    # Privacy check
+    is_owner = current_user and current_user.id == creation.user_id
+    if not creation.is_public and not is_owner:
+        raise HTTPException(status_code=403, detail="This creation is private")
+
+    # Check if liked (same logic as feed)
+    is_liked = False
+    if current_user:
+        is_liked = db.query(CreationLike).filter(
+            CreationLike.user_id == current_user.id,
+            CreationLike.creation_id == creation.id
+        ).first() is not None
+
+    return _creation_to_out(
+        creation, 
+        credits_remaining=current_user.credits if is_owner else None,
+        is_liked=is_liked
+    )
+
+
+@router.patch("/{creation_id}/visibility")
+def update_creation_visibility(
+    creation_id: int,
+    is_public: bool = Form(..., description="Set to true to make public, false to make private"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Allows a user to toggle their own creation between public and private."""
+    creation = db.query(Creation).filter(
+        Creation.id == creation_id,
+        Creation.user_id == current_user.id,
+        Creation.is_deleted == False
+    ).first()
+
+    if not creation:
+        raise HTTPException(status_code=404, detail="Creation not found or you don't have permission")
+
+    creation.is_public = is_public
+    db.commit()
+
+    return {
+        "success": True,
+        "message": f"Creation visibility updated to {'public' if is_public else 'private'}",
+        "is_public": creation.is_public
     }
