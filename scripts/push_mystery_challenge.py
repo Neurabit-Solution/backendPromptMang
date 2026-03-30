@@ -79,7 +79,7 @@ if __name__ == "__main__":
     parser.add_argument("--name", type=str, required=True, help="Name of the challenge.")
     parser.add_argument("--desc", type=str, required=True, help="Description for users.")
     parser.add_argument("--prompt", type=str, required=True, help="Hidden prompt template for generation.")
-    parser.add_argument("--days", type=int, default=7, help="Duration of the challenge in days (default: 7).")
+    parser.add_argument("--days", type=int, default=1, help="Duration of the challenge in days (default: 1).")
 
     args = parser.parse_args()
     

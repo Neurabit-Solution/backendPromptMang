@@ -10,7 +10,7 @@ def insert_sample_challenge():
         cur = conn.cursor()
         
         now = datetime.now(timezone.utc)
-        ends = now + timedelta(days=7)
+        ends = now + timedelta(days=1)
         
         print("Inserting sample Mystery Prompt challenge...")
         cur.execute("""

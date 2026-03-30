@@ -301,6 +301,12 @@ def my_creations(
     current_user: User = Depends(get_current_user),
 ):
     """Returns the current user's creation history (newest first)."""
+    # Get true total count before pagination
+    total_count = db.query(Creation).filter(
+        Creation.user_id == current_user.id,
+        Creation.is_deleted == False
+    ).count()
+
     creations = (
         db.query(Creation)
         .options(joinedload(Creation.style).joinedload(Style.category))
@@ -326,7 +332,7 @@ def my_creations(
             is_liked=(c.id in liked_ids)
         ) for c in creations
     ]
-    return {"success": True, "data": data, "total": len(data)}
+    return {"success": True, "data": data, "total": total_count}
 
 
 # ─── Community Feed ───────────────────────────────────────────────────────────
@@ -341,13 +347,16 @@ def get_community_feed(
     """
     Returns public creations sorted by highest like count first.
     """
+    # Get true total count before pagination
+    query = db.query(Creation).filter(Creation.is_public == True, Creation.is_deleted == False)
+    total_count = query.count()
+
     creations = (
-        db.query(Creation)
+        query
         .options(
             joinedload(Creation.style).joinedload(Style.category),
             joinedload(Creation.user)
         )
-        .filter(Creation.is_public == True, Creation.is_deleted == False)
         .order_by(Creation.likes_count.desc(), Creation.created_at.desc())
         .offset(skip)
         .limit(limit)
@@ -364,7 +373,7 @@ def get_community_feed(
         }
 
     data = [_creation_to_out(c, is_liked=(c.id in liked_ids)) for c in creations]
-    return {"success": True, "data": data, "total": len(data)}
+    return {"success": True, "data": data, "total": total_count}
 
 
 # ─── Interactions ─────────────────────────────────────────────────────────────

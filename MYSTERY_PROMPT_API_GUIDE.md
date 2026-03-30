@@ -22,7 +22,7 @@ Status: `200 OK`
   "description": "Can you match the whimsical aesthetic of Hayao Miyazaki?",
   "target_image_url": "https://s3.../styles/ghibli_reference.jpg",
   "starts_at": "2026-03-20T14:48:15Z",
-  "ends_at": "2026-03-27T14:48:15Z",
+  "ends_at": "2026-03-21T14:48:15Z",
   "is_active": true,
   "created_at": "2026-03-20T14:48:15Z"
 }

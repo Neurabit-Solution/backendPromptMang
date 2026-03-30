@@ -9,11 +9,13 @@ This document outlines the required file structure and S3 naming conventions for
 All assets must be stored within the `prompt-management-system` S3 bucket using the following directory structure:
 
 ```text
-magicpic-bucket/
+prompt-management-system/
 ├── categories/
 │   └── thumbnails/          # Cover images for Category groups
-└── styles/
-    └── thumbnails/          # Preview cards for individual AI Styles
+├── styles/
+│   └── thumbnails/          # Preview cards for individual AI Styles
+└── challenges/
+    └── targets/             # Reference images for Mystery Prompt Challenges
 ```
 
 ---
@@ -58,20 +60,36 @@ When saving to the `styles` table, the `preview_url` column must contain the ful
 
 ---
 
-## 4. Admin Checklist for Uploading
+## 4. Challenge Assets (Mystery Prompt)
 
-When your admin code processes a new Style or Category:
+Challenges are time-limited events where users try to match a target image.
 
-1.  **Generate Slug:** Convert the name to lowercase, replace spaces with hyphens, and remove special characters (e.g., "Neon Glow!" -> `neon-glow`).
-2.  **Rename File:** Rename the local image file to `<slug>.jpg` before uploading.
-3.  **Upload to S3:**
-    *   Use the `ContentType` header: `image/jpeg`.
-    *   Ensure the ACL is set to `public-read` (if bucket policy requires it).
-4.  **Save to DB:** Use the helper function provided in the backend (`_build_url`) or manually concatenate the bucket URL with the key to populate the `preview_url` field.
+### **S3 Storage Rule**
+*   **Path:** `challenges/targets/`
+*   **Filename:** Use a descriptive name based on the **Challenge Name**.
+*   **Format:** Highest quality possible for best AI similarity scoring (`.jpg` or `.png`).
+
+| Field | Example Value | Resulting S3 Key |
+| :--- | :--- | :--- |
+| Name | "Ghibli Mastery" | — |
+| Slug | `ghibli-mastery` | `challenges/targets/ghibli-mastery.jpg` |
+
+### **Database Entry**
+The `target_image_url` column in the `challenges` table must contain the full public HTTPS URL.
 
 ---
 
-## 5. Technical Specification
+## 5. Admin API Workflow (New)
+
+Admins should now use the **Admin API endpoints** instead of manual database pushes to ensure data integrity and automatic S3 cleanup:
+
+1.  **Categories**: Use `POST /api/admin/categories` to handle the data and upload in one go.
+2.  **Styles**: Use `POST /api/admin/styles` — ensure your `prompt_template` is clear and include a `negative_prompt` to avoid common AI glitches.
+3.  **Challenges**: Use `POST /api/admin/challenges` to set up new Mystery Prompts. Remember to set the duration (default: 1 day).
+
+---
+
+## 6. Technical Specification
 
 | Environment Variable | Recommended Value |
 | :--- | :--- |
