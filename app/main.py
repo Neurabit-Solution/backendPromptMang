@@ -7,11 +7,13 @@ from app.api.styles import router as styles_router, categories_router
 from app.api.creations import router as creations_router
 from app.api.guest import router as guest_router
 from app.api.challenges import router as challenges_router
+from app.api.rewards import router as rewards_router
 from app.core.database import engine, Base
 
 # Import all models so SQLAlchemy registers them before create_all()
 from app.models import user  # noqa: F401
 from app.models import style  # noqa: F401  (Category, Style, Creation)
+from app.models import rewards  # noqa: F401
 
 from app.core.config import settings
 
@@ -59,6 +61,7 @@ app.include_router(categories_router, prefix="/api")
 app.include_router(creations_router, prefix="/api")
 app.include_router(guest_router, prefix="/api")
 app.include_router(challenges_router, prefix="/api")
+app.include_router(rewards_router, prefix="/api")
 
 @app.get("/")
 def read_root():

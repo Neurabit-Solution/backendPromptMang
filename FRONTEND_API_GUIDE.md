@@ -172,12 +172,41 @@ Most endpoints (except for viewing styles and the community feed) require a vali
 
 ---
 
-## 4. Error Reference
+## 4. Rewards (AdMob)
+
+### Award Credits for Ad Watch
+**Endpoint**: `POST /api/rewards/admob`  
+**Auth Required**: ✅ Yes
+**Purpose**: Call this after the user successfully watches a rewarded ad.
+
+#### Request Payload (JSON)
+| Field | Type | Description |
+|---|---|---|
+| `ad_unit_id` | string | The AdMob unit ID watched (optional) |
+| `platform` | string | `android` or `ios` (optional) |
+
+#### Response (Success)
+```json
+{
+  "success": true,
+  "data": {
+    "credits_earned": 1,
+    "new_balance": 11,
+    "daily_ad_count": 2
+  },
+  "message": "Successfully earned 1 credit!"
+}
+```
+
+---
+
+## 5. Error Reference
 
 | HTTP Status | Error Code | Description |
 |---|---|---|
 | `401` | — | Token missing or expired |
 | `402` | `INSUFFICIENT_CREDITS` | Not enough credits to generate |
+| `429` | — | Daily ad watch limit reached |
 | `400` | `INVALID_IMAGE` | Unsupported format |
 | `413` | `IMAGE_TOO_LARGE` | File exceeds limit |
 | `404` | `STYLE_NOT_FOUND` | Invalid style ID |

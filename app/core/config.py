@@ -56,8 +56,13 @@ class Settings:
         self.REFERRAL_REWARD_CREDITS = int(get_conf("referral_reward_credits", 5))
         # Daily free credits granted to every user, expiring at end of the day
         self.DAILY_FREE_CREDITS = int(get_conf("daily_free_credits", 5))
+        
+        # AdMob Rewards
+        self.REWARDED_AD_CREDITS = int(get_conf("rewarded_ad_credits", 1))
+        self.DAILY_AD_WATCH_LIMIT = int(get_conf("daily_ad_watch_limit", 5))
 
         # AWS S3
+
         self.AWS_ACCESS_KEY_ID     = get_conf("aws_access_key_id", "")
         self.AWS_SECRET_ACCESS_KEY = get_conf("aws_secret_access_key", "")
         self.AWS_REGION            = get_conf("aws_region", "ap-south-1")
