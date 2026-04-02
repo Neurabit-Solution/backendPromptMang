@@ -337,18 +337,58 @@ def my_creations(
 
 # ─── Community Feed ───────────────────────────────────────────────────────────
 
+@router.get("/liked")
+def liked_creations(
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Returns a paginated list of all creations liked by the current user."""
+    # Subquery to find IDs of liked creations
+    query = (
+        db.query(Creation)
+        .join(CreationLike)
+        .filter(CreationLike.user_id == current_user.id, Creation.is_deleted == False)
+    )
+    
+    total_count = query.count()
+    
+    creations = (
+        query
+        .options(
+            joinedload(Creation.style).joinedload(Style.category),
+            joinedload(Creation.user)
+        )
+        .order_by(CreationLike.created_at.desc()) # Newest likes first
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    
+    # Since we are fetching from 'liked' table, is_liked is implicitly true for all these
+    data = [_creation_to_out(c, is_liked=True) for c in creations]
+    return {"success": True, "data": data, "total": total_count}
+
+
 @router.get("/feed")
 def get_community_feed(
     skip: int = 0,
     limit: int = 20,
+    user_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_optional_user)
 ):
     """
     Returns public creations sorted by highest like count first.
+    If user_id is provided, returns only public creations from that user.
     """
     # Get true total count before pagination
     query = db.query(Creation).filter(Creation.is_public == True, Creation.is_deleted == False)
+    
+    if user_id:
+        query = query.filter(Creation.user_id == user_id)
+        
     total_count = query.count()
 
     creations = (

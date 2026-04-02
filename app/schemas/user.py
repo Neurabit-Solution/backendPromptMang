@@ -32,6 +32,21 @@ class User(UserBase):
     
     model_config = ConfigDict(from_attributes=True)
 
+class UserPublic(BaseModel):
+    id: int
+    name: str
+    avatar_url: Optional[str] = None
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class PublicProfile(BaseModel):
+    user: UserPublic
+    creations: list[Any] # Will be list[CreationOut] but avoiding circular import
+    total_likes: int
+    creations_count: int
+    share_url: str
+
 # Properties for login
 class UserLogin(BaseModel):
     email: EmailStr

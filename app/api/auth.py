@@ -13,6 +13,8 @@ import secrets
 import random
 import string
 
+from ..models.style import Creation, CreationLike # For stats calculation in public profile
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
@@ -428,6 +430,47 @@ def refresh_token(token: str = Depends(security.oauth2_scheme), db: Session = De
         "token_type": "bearer",
         "expires_in": 1800
     }
+
+@router.get("/profile/{user_id}", response_model=None)
+def get_public_profile(user_id: int, db: Session = Depends(get_db)):
+    """
+    Publicly accessible information about a user for sharing.
+    Returns: name, avatar, creation count, total likes, and a share URL.
+    """
+    user = db.query(models.User).filter(models.User.id == user_id, models.User.is_active == True).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Calculate stats
+    creations_count = db.query(Creation).filter(
+        Creation.user_id == user_id, 
+        Creation.is_public == True, 
+        Creation.is_deleted == False
+    ).count()
+    
+    total_likes = db.query(func.sum(Creation.likes_count)).filter(
+        Creation.user_id == user_id,
+        Creation.is_public == True,
+        Creation.is_deleted == False
+    ).scalar() or 0
+    
+    # Construct response manually to match shared schema but keep it simple here
+    return {
+        "success": True,
+        "data": {
+            "user": {
+                "id": user.id,
+                "name": user.name,
+                "avatar_url": user.avatar_url,
+                "created_at": user.created_at
+            },
+            "total_likes": total_likes,
+            "creations_count": creations_count,
+            "share_url": f"https://magicpic.app/p/{user.id}" # Base URL for frontend
+        },
+        "message": "Public profile retrieved"
+    }
+
 
 @router.delete("/account")
 def delete_account(

@@ -161,6 +161,7 @@ class Creation(Base):
     user       = relationship("User", back_populates="creations")
     style      = relationship("Style", back_populates="creations")
     challenge  = relationship("Challenge", back_populates="creations", foreign_keys=[challenge_id])
+    collections = relationship("Collection", secondary="collection_creations", back_populates="creations")
 
 
 class GuestUsage(Base):
@@ -191,3 +192,38 @@ class CreationLike(Base):
 
     # Ensure one user can only like a creation once
     __table_args__ = (UniqueConstraint('user_id', 'creation_id', name='_user_creation_like_uc'),)
+
+
+class Collection(Base):
+    """
+    A named group of creations belonging to a user (like a playlist).
+    """
+    __tablename__ = "collections"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    user_id      = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    name         = Column(String(100), nullable=False)
+    description  = Column(String(500), nullable=True)
+    cover_url    = Column(String(500), nullable=True)
+
+    created_at   = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at   = Column(DateTime(timezone=True), onupdate=func.now())
+
+    # Relationships
+    user      = relationship("User", back_populates="collections")
+    creations = relationship("Creation", secondary="collection_creations", back_populates="collections")
+
+
+class CollectionCreation(Base):
+    """
+    Many-to-many relationship mapping creations into collections.
+    """
+    __tablename__ = "collection_creations"
+
+    id            = Column(Integer, primary_key=True, index=True)
+    collection_id = Column(Integer, ForeignKey("collections.id", ondelete="CASCADE"), index=True, nullable=False)
+    creation_id   = Column(Integer, ForeignKey("creations.id", ondelete="CASCADE"), index=True, nullable=False)
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Ensure a creation can't be added to the same collection twice
+    __table_args__ = (UniqueConstraint('collection_id', 'creation_id', name='_col_creation_uc'),)
