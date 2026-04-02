@@ -420,6 +420,48 @@ def like_creation(
     }
 
 
+@router.delete("/{creation_id}/like")
+def unlike_creation(
+    creation_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Removes the current user's like from a specific creation.
+    Decrements the like count by 1. Returns 400 if the user hasn't liked it.
+    """
+    creation = db.query(Creation).filter(Creation.id == creation_id, Creation.is_deleted == False).first()
+    if not creation:
+        raise HTTPException(status_code=404, detail="Creation not found")
+
+    # Find the existing like record
+    existing_like = db.query(CreationLike).filter(
+        CreationLike.user_id == current_user.id,
+        CreationLike.creation_id == creation_id
+    ).first()
+
+    if not existing_like:
+        return {
+            "success": False,
+            "message": "You have not liked this creation",
+            "likes_count": creation.likes_count or 0,
+            "is_liked": False
+        }
+
+    # Remove the like record and decrement count (floor at 0)
+    db.delete(existing_like)
+    creation.likes_count = max(0, (creation.likes_count or 1) - 1)
+    db.commit()
+    db.refresh(creation)
+
+    return {
+        "success": True,
+        "message": "Like removed successfully",
+        "likes_count": creation.likes_count,
+        "is_liked": False
+    }
+
+
 @router.get("/{creation_id}", response_model=CreationOut)
 def get_creation_detail(
     creation_id: int,

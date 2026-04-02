@@ -145,13 +145,30 @@ Used for the home screen gallery and filter tabs.
 - **Response**: List of user's own `CreationOut` objects.
 
 ### 3.4 POST /creations/{id}/like
-**Functionality**: Adds or removes a "like" from a specific creation.  
-**Usage**: Triggered when a user clicks the heart icon on any creation card (Community feed or Detail view).
+**Functionality**: Adds a "like" to a specific creation (once per user).  
+**Usage**: Triggered when a user taps the heart icon on a creation card. Returns an error if the user has already liked it — use the unlike endpoint to remove.
 - **Auth**: ✅ Required
-- **Payload**: None (Implicit in URL {id})
-- **Response**: `{"success": true, "likes_count": 12, "message": "Liked successfully"}`
+- **Payload**: None (creation ID in URL path)
+- **Response Success**: `{"success": true, "likes_count": 13, "message": "Liked successfully"}`
+- **Response (already liked)**: `{"success": false, "likes_count": 13, "message": "You have already liked this creation"}`
 
-### 3.5 PATCH /creations/{id}/visibility
+### 3.5 DELETE /creations/{id}/like
+**Functionality**: Removes the current user's like from a specific creation.  
+**Usage**: Triggered when a user taps the heart icon again to unlike. Decrements the like counter and removes the record from the database.
+- **Auth**: ✅ Required
+- **Payload**: None (creation ID in URL path)
+- **Response Success**:
+  ```json
+  {
+    "success": true,
+    "message": "Like removed successfully",
+    "likes_count": 12,
+    "is_liked": false
+  }
+  ```
+- **Response (not previously liked)**: `{"success": false, "likes_count": 12, "is_liked": false, "message": "You have not liked this creation"}`
+
+### 3.6 PATCH /creations/{id}/visibility
 **Functionality**: Toggles a creation between Public (seen in feed) and Private (only for owner).  
 **Usage**: Used when a user wants to hide an existing image from the community gallery without deleting it.
 - **Auth**: ✅ Required
@@ -164,16 +181,44 @@ Used for the home screen gallery and filter tabs.
 ## 4. Challenges (`/challenges`)
 
 ### 4.1 GET /challenges/current
-**Functionality**: Returns details about the active "Mystery Prompt" or "Collaborative Story".  
-**Usage**: Used to show the main challenge banner on the home screen with the target image to match.
-- **Response Success**: `{"id": 5, "name": "Ghibli Mastery", "target_image_url": "...", ...}`
+**Functionality**: Returns details of the overall "active" challenge.  
+**Usage**: Used for the primary banner on the home screen. It prioritizes the latest "Mystery Prompt" challenge if multiple are active.
+- **Response Success**: 
+  ```json
+  {
+    "id": 5,
+    "name": "Ghibli Mastery",
+    "description": "Recapture the magic of Studio Ghibli...",
+    "target_image_url": "https://...",
+    "challenge_type": "mystery",
+    "starts_at": "2024-03-24T00:00:00Z",
+    "ends_at": "2024-03-24T23:59:59Z",
+    "is_active": true
+  }
+  ```
 
-### 4.2 POST /challenges/{id}/submit
-**Functionality**: Participates in a challenge by uploading a photo and getting an AI score.  
-**Usage**: Triggered when a user attempts a challenge. It calculates how similar their transformation is to the goal image.
-- **Payload (Multipart)**:
-  - `image`: (File, Required) The photo to match.
+### 4.2 GET /challenges/collaborative/current
+**Functionality**: Specifically returns the active "Collaborative Story" challenge for today.  
+**Usage**: Used to drive the multi-day story mode.
+- **Response Success**: Same format as `4.1`, but with `challenge_type: "collaborative"`.
+
+### 4.3 GET /challenges/collaborative/story/{group_id}
+**Functionality**: Returns the winning images from previous days in a multi-day story sequence.  
+**Usage**: Used on the "Story Progress" screen to show the community-built narrative so far.
 - **Response**:
+  ```json
+  [
+    { "day": 1, "image_url": "...", "winner_name": "Alice", "likes": 45 },
+    { "day": 2, "image_url": "...", "winner_name": "Bob", "likes": 32 }
+  ]
+  ```
+
+### 4.4 POST /challenges/{id}/submit
+**Functionality**: Participates in a challenge by uploading a photo.  
+**Usage**: Automatically uses the challenge's hidden prompt to generate an image. Costs 1 credit (prioritizing daily free credits).
+- **Payload (Multipart)**:
+  - `image`: (File, Required)
+- **Response Success**:
   ```json
   {
     "success": true,
@@ -181,16 +226,27 @@ Used for the home screen gallery and filter tabs.
       "id": 505,
       "similarity_score": 89.5,
       "generated_image_url": "https://...",
-      "message": "Submitted! Match score: 89.5%"
+      "message": "Submitted successfully! Match score: 89.5%"
     }
   }
   ```
 
-### 4.3 GET /challenges/{id}/leaderboard
-**Functionality**: Lists the top participants for a specific challenge ranked by AI score.  
-**Usage**: Used on the challenge "Rankings" page to show who matched the aesthetic most accurately.
-- **Query Params**: None.
-- **Response**: `[{"user_name": "...", "avatar_url": "...", "similarity_score": 98.2, "generated_image_url": "..."}]`
+### 4.5 GET /challenges/{id}/leaderboard
+**Functionality**: Returns top submissions ranked by similarity score.  
+**Usage**: Powers the challenge rankings page.
+- **Response**:
+  ```json
+  [
+    {
+      "id": 505,
+      "user_name": "AestheticKing",
+      "avatar_url": "...",
+      "similarity_score": 98.2,
+      "generated_image_url": "...",
+      "created_at": "..."
+    }
+  ]
+  ```
 
 ---
 
@@ -217,6 +273,13 @@ Requires `is_admin: true` in user record.
 - **Payload (Multipart)**:
   - `category_id`, `name`, `slug`, `prompt_template`, `negative_prompt`, `preview_image` (File).
 - **Response**: `{"success": true, "style": {...}}`
+
+### 6.2 POST /challenges/{id}/set_winner
+**Functionality**: Manually designates a specific creation as the winner for a story day.  
+**Usage**: Used by admins to finalize the community choice and advance the story to the next day's prompt.
+- **Payload (Form-data)**:
+  - `creation_id`: (Integer, Required)
+- **Response**: `{"success": true, "message": "Winner set successfully"}`
 
 ---
 
