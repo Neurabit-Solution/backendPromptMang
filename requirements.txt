@@ -11,3 +11,4 @@ jproperties
 boto3
 google-genai
 firebase-admin
+razorpay

@@ -83,4 +83,15 @@ class Settings:
         # Leave empty to skip this extra check (not recommended for production).
         self.FIREBASE_ANDROID_CLIENT_ID = get_conf("firebase_android_client_id", "")
 
+        # Razorpay
+        self.RAZORPAY_KEY_ID = get_conf("razorpay_key_id", "")
+        self.RAZORPAY_KEY_SECRET = get_conf("razorpay_key_secret", "")
+
+        # Credits Pricing
+        # Store how many credits are granted per INR (or based on plan).
+        # We can define multiple credit packages later if needed. Default to 10 INR = 1 credit.
+        self.CREDIT_PRICE_INR = int(get_conf("credit_price_inr", 10))
+        # Fixed number of credits shown to the user for purchase
+        self.CREDITS_PACKAGE_SIZE = int(get_conf("credits_package_size", 50))
+
 settings = Settings()

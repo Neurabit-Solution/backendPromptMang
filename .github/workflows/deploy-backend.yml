@@ -58,6 +58,12 @@ jobs:
             SIGNUP_INITIAL_CREDITS=${{ secrets.SIGNUP_INITIAL_CREDITS }}
             DAILY_FREE_CREDITS=${{ secrets.DAILY_FREE_CREDITS }}
             REFERRAL_REWARD_CREDITS=${{ secrets.REFERRAL_REWARD_CREDITS }}
+
+            # Razorpay / Payments
+            RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}
+            RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }}
+            CREDIT_PRICE_INR=${{ secrets.CREDIT_PRICE_INR }}
+            CREDITS_PACKAGE_SIZE=${{ secrets.CREDITS_PACKAGE_SIZE }}
             EOF
 
             echo "Stopping old containers (if any)..."
