@@ -384,7 +384,11 @@ def get_community_feed(
     If user_id is provided, returns only public creations from that user.
     """
     # Get true total count before pagination
-    query = db.query(Creation).filter(Creation.is_public == True, Creation.is_deleted == False)
+    query = db.query(Creation).filter(
+        Creation.is_public == True, 
+        Creation.is_deleted == False,
+        Creation.challenge_id == None  # Only show prompt-generated (non-challenge) creations
+    )
     
     if user_id:
         query = query.filter(Creation.user_id == user_id)
