@@ -380,7 +380,7 @@ def get_community_feed(
     current_user: Optional[User] = Depends(get_optional_user)
 ):
     """
-    Returns public creations sorted by highest like count first.
+    Returns public creations sorted by most recent first.
     If user_id is provided, returns only public creations from that user.
     """
     # Get true total count before pagination
@@ -397,7 +397,7 @@ def get_community_feed(
             joinedload(Creation.style).joinedload(Style.category),
             joinedload(Creation.user)
         )
-        .order_by(Creation.likes_count.desc(), Creation.created_at.desc())
+        .order_by(Creation.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()
