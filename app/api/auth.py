@@ -22,12 +22,7 @@ router = APIRouter(
     tags=["Authentication"]
 )
 
-def get_db():
-    db = database.SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+from app.core.database import get_db
 
 def generate_referral_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
