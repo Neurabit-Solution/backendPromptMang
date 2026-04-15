@@ -364,3 +364,59 @@ Allows users to organize their creations into named "Playlists" or folders.
 ### 8.6 DELETE /collections/{id}
 **Functionality**: Deletes a collection (does not delete the actual images).
 - **Response**: `{"success": true, "message": "Collection deleted"}`
+
+---
+
+## 9. Payments (`/payments`)
+
+Handles credit purchases via Razorpay.
+
+### 9.1 GET /payments/pricing
+**Functionality**: Returns the current price per credit and package options.
+- **Response**: `{"credits": 100, "price_inr": 100.0, "currency": "INR"}`
+
+### 9.2 POST /payments/create-order
+**Functionality**: Creates a Razorpay order.
+- **Auth**: ✅ Required
+- **Payload (JSON)**:
+  - `credits`: (Integer, Required) Number of credits to buy.
+- **Response**: 
+  ```json
+  {
+    "success": true,
+    "order_id": "order_...",
+    "amount": 100.0,
+    "currency": "INR",
+    "key_id": "rzp_test_..."
+  }
+  ```
+
+### 9.3 POST /payments/verify-payment
+**Functionality**: Verifies Razorpay payment signature and adds credits to user account.
+- **Auth**: ✅ Required
+- **Payload (JSON)**:
+  - `razorpay_order_id`: (String, Required)
+  - `razorpay_payment_id`: (String, Required)
+  - `razorpay_signature`: (String, Required)
+- **Response**: `{"success": true, "message": "Successfully added 100 credits", "credits_added": 100, "total_credits": 150}`
+
+### 9.4 GET /payments/history
+**Functionality**: Returns the history of successful credit purchases for the current user.
+- **Auth**: ✅ Required
+- **Response**:
+  ```json
+  {
+    "success": true,
+    "history": [
+      {
+        "id": 1,
+        "order_id": "order_Hn4S6K9vL2nZ",
+        "payment_id": "pay_Hn4S7L7vM3mY",
+        "amount_inr": 100.0,
+        "credits_purchased": 100,
+        "status": "success",
+        "created_at": "2024-04-15T12:00:00Z"
+      }
+    ]
+  }
+  ```

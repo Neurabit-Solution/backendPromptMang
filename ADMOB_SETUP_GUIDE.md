@@ -5,26 +5,62 @@ This guide explains how to set up Rewarded Ads in MagicPic and award users **1 c
 ## 1. AdMob Dashboard Setup
 
 1.  **Create an AdMob Account**: Go to [apps.admob.com](https://apps.admob.com/).
-2.  **Add App**: Register your Android/iOS app.
+2.  **Add App**: 
+    *   Click **Apps** in the sidebar → **Add App**.
+    *   Register your Android or iOS app.
 3.  **Create Ad Unit**:
+    *   Select your app from the sidebar.
+    *   Click **Ad units** → **Add ad unit**.
     *   Select **Rewarded Ad**.
-    *   Set the **Reward amount** to `1`.
-    *   Set the **Reward item** to `Credit`.
-4.  **Get IDs**:
-    *   **App ID**: `ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy`
-    *   **Ad Unit ID**: `ca-app-pub-xxxxxxxxxxxxxxxx/zzzzzzzzzz`
+    *   **Reward settings**:
+        *   Set **Reward amount** to `1`.
+        *   Set **Reward item** to `Credit`.
+4.  **How to Collect Your IDs**:
+    *   **App ID**: Go to **App Settings** in the sidebar. Look for "App ID" (Format: `ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy`).
+    *   **Ad Unit ID**: Go to **Ad units** in the sidebar. Copy the ID for your rewarded ad (Format: `ca-app-pub-xxxxxxxxxxxxxxxx/zzzzzzzzzz`).
 
 ---
 
-## 2. Frontend Implementation (Mobile)
+## 2. Backend Configuration
 
-### A. Load the Ad
-In your app (e.g., React Native, Flutter, or Native Android), load the ad when the user opens the "Earn Credits" screen.
+Add the following keys to your `config.properties` file in the root directory to control the reward logic:
+
+```ini
+# --- AdMob Rewards ---
+# Credits awarded per ad watch
+rewarded_ad_credits=1
+# Maximum rewarded ads a user can watch per day
+daily_ad_watch_limit=5
+```
+
+These values are automatically picked up by the backend to enforce limits and award the correct amount.
+
+---
+
+## 3. Frontend & App Implementation
+
+### A. Mobile App Configuration
+Before using the SDK, you must add your **App ID** to your mobile project:
+
+*   **Android**: Add to `AndroidManifest.xml` inside `<application>`:
+    ```xml
+    <meta-data
+        android:name="com.google.android.gms.ads.APPLICATION_ID"
+        android:value="ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy"/>
+    ```
+*   **iOS**: Add to `Info.plist`:
+    ```xml
+    <key>GADApplicationIdentifier</key>
+    <string>ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy</string>
+    ```
+
+### B. Load the Ad (React Native Example)
+Load the ad unit using the **Ad Unit ID** collected earlier.
 
 ```javascript
-// Example using React Native AdMob
 import { RewardedAd, RewardedAdEventType, TestIds } from 'react-native-google-mobile-ads';
 
+// Use TestIds.REWARDED during development to avoid policy violations!
 const adUnitId = __DEV__ ? TestIds.REWARDED : 'ca-app-pub-xxxxxxxxxxxxxxxx/zzzzzzzzzz';
 
 const rewardedAd = RewardedAd.createForAdUnit(adUnitId, {
@@ -32,19 +68,19 @@ const rewardedAd = RewardedAd.createForAdUnit(adUnitId, {
 });
 ```
 
-### B. Handle the Reward
-When the user finishes watching, the SDK triggers a callback. **This is where you call the Backend.**
+### C. Handle the Reward
+When the user finishes watching, the SDK triggers the `EARNED_REWARD` event. **This is when you notify the backend.**
 
 ```javascript
 rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, (reward) => {
-  console.log('User earned reward of ', reward);
+  console.log('User earned reward:', reward);
   
   // Call MagicPic Backend to add the credit
   awardCreditOnBackend();
 });
 ```
 
-### C. Backend API Call
+### D. Backend API Call
 The frontend must send a POST request with the user's Auth Token.
 
 ```javascript
@@ -57,7 +93,7 @@ const awardCreditOnBackend = async () => {
         'Authorization': `Bearer ${userAccessToken}`
       },
       body: JSON.stringify({
-        ad_unit_id: "rewarded_ad_main",
+        ad_unit_id: "rewarded_ad_main", // The name or ID you use to track this unit
         platform: "android"
       })
     });
@@ -74,21 +110,21 @@ const awardCreditOnBackend = async () => {
 
 ---
 
-## 3. Backend details (Already Implemented)
+## 4. Backend Logic (Already Implemented)
 
-The backend endpoint `/api/rewards/admob` handles:
-*   **Daily Limits**: Enforces a limit (Default: 5/day) to prevent botting.
-*   **Audit Log**: Saves every ad watch in `ad_watches` table.
-*   **Transaction History**: Updates `credit_transactions` so the user knows where the credit came from.
-*   **Balance Update**: Directly increments the `credits` column in the `users` table.
+The backend endpoint `/api/rewards/admob` handles the following automatically:
+*   **Daily Limits**: Checks `daily_ad_watch_limit` from config.
+*   **Audit Log**: Saves every ad watch in the `ad_watches` table.
+*   **Transaction History**: Updates `credit_transactions`.
+*   **Balance Update**: Directly increments user credits in the database.
 
 ---
 
-## 4. Enhanced Security (Optional)
+## 5. Enhanced Security (Optional)
 
 For production, it is highly recommended to enable **Server-Side Verification (SSV)** in the AdMob dashboard.
-1.  Enter your callback URL in AdMob: `https://api.magicpic.com/api/rewards/admob-ssv`.
-2.  Google will send a POST directly to your server with a digital signature.
-3.  This prevents users from "faking" the API call from the frontend.
+1.  In AdMob: Go to Ad Unit settings → Advanced settings → **Server-side verification**.
+2.  Enter Callback URL: `https://api.magicpic.com/api/rewards/admob-ssv`.
+3.  This makes the system 100% secure by verifying Google's digital signature.
 
-*Note: If you need SSV implementation, please ask!*
+*Note: If you need the SSV backend implementation, please ask!*

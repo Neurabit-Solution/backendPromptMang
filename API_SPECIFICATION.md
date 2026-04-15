@@ -2297,6 +2297,28 @@ export const purchaseCredits = async (packageId: number): Promise<PurchaseResult
 };
 ```
 
+#### GET `/api/payments/history`
+
+**Purpose**: Get successful credit purchase history for the current user
+
+**Response**:
+```json
+{
+  "success": true,
+  "history": [
+    {
+      "id": 1,
+      "order_id": "order_Hn4S6K9vL2nZ",
+      "payment_id": "pay_Hn4S7L7vM3mY",
+      "amount_inr": 100.0,
+      "credits_purchased": 100,
+      "status": "success",
+      "created_at": "2024-04-15T12:00:00Z"
+    }
+  ]
+}
+```
+
 ---
 
 ## Push Notifications

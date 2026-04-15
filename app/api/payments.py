@@ -15,6 +15,7 @@ from app.schemas.payment import (
     PaymentVerifyRequest,
     PaymentVerifyResponse,
     PricingInfoResponse,
+    PaymentHistoryResponse,
 )
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
@@ -172,3 +173,22 @@ def verify_payment(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to verify payment: {str(e)}"
         )
+
+@router.get("/history", response_model=PaymentHistoryResponse)
+def get_payment_history(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns the credit purchase history for the current user.
+    Only successful transactions are returned.
+    """
+    history = db.query(Transaction).filter(
+        Transaction.user_id == current_user.id,
+        Transaction.status == "success"
+    ).order_by(Transaction.created_at.desc()).all()
+
+    return PaymentHistoryResponse(
+        success=True,
+        history=history
+    )

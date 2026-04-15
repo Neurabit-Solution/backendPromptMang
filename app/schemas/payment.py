@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 class OrderCreateRequest(BaseModel):
     credits: int
@@ -27,3 +27,18 @@ class PricingInfoResponse(BaseModel):
     credits: int
     price_inr: float
     currency: str
+
+class PaymentHistoryItem(BaseModel):
+    id: int
+    order_id: str
+    payment_id: Optional[str] = None
+    amount_inr: float
+    credits_purchased: int
+    status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class PaymentHistoryResponse(BaseModel):
+    success: bool
+    history: List[PaymentHistoryItem]
