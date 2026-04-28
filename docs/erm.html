@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MagicPic – Database ERD</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            background: #0d1117;
+            color: #e6edf3;
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            overflow-x: auto
+        }
+
+        h1 {
+            text-align: center;
+            padding: 32px 0 8px;
+            font-size: 2rem;
+            background: linear-gradient(135deg, #7c3aed, #06b6d4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #8b949e;
+            margin-bottom: 32px;
+            font-size: .9rem
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 28px;
+            flex-wrap: wrap
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: .8rem;
+            color: #8b949e
+        }
+
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%
+        }
+
+        /* Canvas wrapper */
+        #canvas {
+            position: relative;
+            width: 2200px;
+            min-height: 1400px;
+            margin: 0 auto 60px
+        }
+
+        /* Tables */
+        .tbl {
+            position: absolute;
+            background: #161b22;
+            border: 1.5px solid #30363d;
+            border-radius: 10px;
+            min-width: 220px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, .5);
+            transition: box-shadow .2s
+        }
+
+        .tbl:hover {
+            box-shadow: 0 8px 40px rgba(124, 58, 237, .25);
+            border-color: #7c3aed
+        }
+
+        .tbl-head {
+            padding: 10px 14px;
+            border-radius: 8px 8px 0 0;
+            font-weight: 700;
+            font-size: .85rem;
+            letter-spacing: .04em;
+            display: flex;
+            align-items: center;
+            gap: 8px
+        }
+
+        .tbl-body {
+            padding: 6px 0 8px
+        }
+
+        .col {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 14px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: .75rem;
+            color: #c9d1d9;
+            white-space: nowrap
+        }
+
+        .col:hover {
+            background: #21262d
+        }
+
+        .pk {
+            color: #ffd700;
+            font-weight: 700
+        }
+
+        .fk {
+            color: #06b6d4
+        }
+
+        .tag {
+            font-size: .65rem;
+            padding: 1px 5px;
+            border-radius: 4px;
+            margin-left: auto;
+            background: #21262d;
+            color: #8b949e
+        }
+
+        .tag.pk {
+            background: #2d2600;
+            color: #ffd700
+        }
+
+        .tag.fk {
+            background: #002b33;
+            color: #06b6d4
+        }
+
+        .tag.nn {
+            background: #1a2200;
+            color: #7ee787
+        }
+
+        .tag.uq {
+            background: #2b0030;
+            color: #d2a8ff
+        }
+
+        .divider {
+            height: 1px;
+            background: #21262d;
+            margin: 4px 0
+        }
+
+        /* Color themes per table */
+        .t-users .tbl-head {
+            background: linear-gradient(90deg, #1e3a5f, #1a2d4a);
+            color: #79c0ff
+        }
+
+        .t-styles .tbl-head {
+            background: linear-gradient(90deg, #2d1b69, #221455);
+            color: #d2a8ff
+        }
+
+        .t-categories .tbl-head {
+            background: linear-gradient(90deg, #2d4a1b, #1e3312);
+            color: #7ee787
+        }
+
+        .t-creations .tbl-head {
+            background: linear-gradient(90deg, #5a1b1b, #3d1212);
+            color: #ffa198
+        }
+
+        .t-challenges .tbl-head {
+            background: linear-gradient(90deg, #5a3d1b, #3d2a12);
+            color: #ffb347
+        }
+
+        .t-guest .tbl-head {
+            background: linear-gradient(90deg, #1b3d3d, #122a2a);
+            color: #56d364
+        }
+
+        .t-likes .tbl-head {
+            background: linear-gradient(90deg, #5a1b3d, #3d1228);
+            color: #f78166
+        }
+
+        .t-collections .tbl-head {
+            background: linear-gradient(90deg, #1b3d5a, #122a3d);
+            color: #79c0ff
+        }
+
+        .t-col-creations .tbl-head {
+            background: linear-gradient(90deg, #1b2d5a, #121e3d);
+            color: #a5d6ff
+        }
+
+        .t-transactions .tbl-head {
+            background: linear-gradient(90deg, #3d3d1b, #2a2a12);
+            color: #e3b341
+        }
+
+        .t-credit-tx .tbl-head {
+            background: linear-gradient(90deg, #3d1b3d, #2a122a);
+            color: #d2a8ff
+        }
+
+        .t-ad-watches .tbl-head {
+            background: linear-gradient(90deg, #1b3d2d, #122a1e);
+            color: #56d364
+        }
+
+        /* SVG connector layer */
+        svg#lines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: visible
+        }
+
+        svg#lines line {
+            stroke-width: 1.5;
+            opacity: .6
+        }
+
+        svg#lines marker path {
+            fill-opacity: .7
+        }
+
+        /* Info panel */
+        #info {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 16px 20px;
+            font-size: .8rem;
+            color: #8b949e;
+            max-width: 280px
+        }
+
+        #info h3 {
+            color: #e6edf3;
+            margin-bottom: 8px;
+            font-size: .9rem
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin: 4px 0
+        }
+
+        .stat span:last-child {
+            color: #7c3aed;
+            font-weight: 600
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🎨 MagicPic — Database ERD</h1>
+    <p class="subtitle">Entity Relationship Diagram · 12 Tables · PostgreSQL</p>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#ffd700"></div> Primary Key (PK)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#06b6d4"></div> Foreign Key (FK)
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#7ee787"></div> Not Null
+        </div>
+        <div class="legend-item">
+            <div class="legend-dot" style="background:#d2a8ff"></div> Unique
+        </div>
+        <div class="legend-item" style="gap:12px">
+            <svg width="40" height="12">
+                <line x1="0" y1="6" x2="40" y2="6" stroke="#7c3aed" stroke-width="2" />
+                <circle cx="40" cy="6" r="4" fill="#7c3aed" />
+            </svg> One-to-Many
+        </div>
+        <div class="legend-item" style="gap:12px">
+            <svg width="40" height="12">
+                <line x1="0" y1="6" x2="40" y2="6" stroke="#06b6d4" stroke-width="2" stroke-dasharray="4" />
+            </svg> Many-to-Many (via join)
+        </div>
+    </div>
+
+    <div id="canvas">
+        <svg id="lines"></svg>
+
+        <!-- ════════════════ USERS ════════════════ -->
+        <div class="tbl t-users" id="t-users" style="left:50px;top:50px">
+            <div class="tbl-head">👤 users</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col">email <span class="tag uq">UNIQUE</span></div>
+                <div class="col">hashed_password <span class="tag nn">NN</span></div>
+                <div class="col">name <span class="tag nn">NN</span></div>
+                <div class="col">phone</div>
+                <div class="col">avatar_url</div>
+                <div class="col">credits <span class="tag nn">INT</span></div>
+                <div class="col">daily_credits <span class="tag nn">INT</span></div>
+                <div class="col">daily_credits_date</div>
+                <div class="col">is_verified <span class="tag nn">BOOL</span></div>
+                <div class="col">is_active <span class="tag nn">BOOL</span></div>
+                <div class="col fk">referred_by_id <span class="tag fk">FK→users</span></div>
+                <div class="col">referral_code <span class="tag uq">UNIQUE</span></div>
+                <div class="col">last_login</div>
+                <div class="col">created_at</div>
+                <div class="col">updated_at</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ CATEGORIES ════════════════ -->
+        <div class="tbl t-categories" id="t-categories" style="left:440px;top:50px">
+            <div class="tbl-head">📂 categories</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col">name <span class="tag uq">UNIQUE</span></div>
+                <div class="col">slug <span class="tag uq">UNIQUE</span></div>
+                <div class="col">icon</div>
+                <div class="col">description</div>
+                <div class="col">preview_url</div>
+                <div class="col">display_order</div>
+                <div class="col">is_active <span class="tag nn">BOOL</span></div>
+            </div>
+        </div>
+
+        <!-- ════════════════ STYLES ════════════════ -->
+        <div class="tbl t-styles" id="t-styles" style="left:800px;top:50px">
+            <div class="tbl-head">🎨 styles</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col fk">category_id <span class="tag fk">FK→categories</span></div>
+                <div class="col">name <span class="tag nn">NN</span></div>
+                <div class="col">slug <span class="tag uq">UNIQUE</span></div>
+                <div class="col">description</div>
+                <div class="col">preview_url <span class="tag nn">NN</span></div>
+                <div class="col">prompt_template <span class="tag nn">TEXT</span></div>
+                <div class="col">negative_prompt</div>
+                <div class="col">tags <span class="tag nn">JSON</span></div>
+                <div class="col">credits_required</div>
+                <div class="col">uses_count</div>
+                <div class="col">is_trending <span class="tag nn">BOOL</span></div>
+                <div class="col">is_new <span class="tag nn">BOOL</span></div>
+                <div class="col">is_active <span class="tag nn">BOOL</span></div>
+                <div class="col">display_order</div>
+                <div class="col">created_at</div>
+                <div class="col">updated_at</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ CHALLENGES ════════════════ -->
+        <div class="tbl t-challenges" id="t-challenges" style="left:1200px;top:50px">
+            <div class="tbl-head">🏆 challenges</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col">name <span class="tag nn">NN</span></div>
+                <div class="col">description</div>
+                <div class="col">target_image_url <span class="tag nn">NN</span></div>
+                <div class="col">prompt_template <span class="tag nn">TEXT</span></div>
+                <div class="col">challenge_type <span class="tag nn">NN</span></div>
+                <div class="col">day_number</div>
+                <div class="col">group_id</div>
+                <div class="col fk">previous_winner_id <span class="tag fk">FK→creations</span></div>
+                <div class="col">starts_at</div>
+                <div class="col">ends_at <span class="tag nn">NN</span></div>
+                <div class="col">is_active <span class="tag nn">BOOL</span></div>
+                <div class="col">created_at</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ CREATIONS ════════════════ -->
+        <div class="tbl t-creations" id="t-creations" style="left:800px;top:500px">
+            <div class="tbl-head">🖼️ creations</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col fk">user_id <span class="tag fk">FK→users</span></div>
+                <div class="col fk">style_id <span class="tag fk">FK→styles</span></div>
+                <div class="col fk">challenge_id <span class="tag fk">FK→challenges</span></div>
+                <div class="col">original_image_url <span class="tag nn">NN</span></div>
+                <div class="col">generated_image_url</div>
+                <div class="col">thumbnail_url</div>
+                <div class="col">mood</div>
+                <div class="col">weather</div>
+                <div class="col">dress_style</div>
+                <div class="col">custom_prompt</div>
+                <div class="col">prompt_used <span class="tag nn">TEXT</span></div>
+                <div class="col">credits_used</div>
+                <div class="col">similarity_score <span class="tag nn">FLOAT</span></div>
+                <div class="col">processing_time</div>
+                <div class="col">likes_count</div>
+                <div class="col">views_count</div>
+                <div class="col">is_public <span class="tag nn">BOOL</span></div>
+                <div class="col">is_featured <span class="tag nn">BOOL</span></div>
+                <div class="col">is_deleted <span class="tag nn">BOOL</span></div>
+                <div class="col">created_at</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ CREATION LIKES ════════════════ -->
+        <div class="tbl t-likes" id="t-likes" style="left:1200px;top:600px">
+            <div class="tbl-head">❤️ creation_likes</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col fk">user_id <span class="tag fk">FK→users</span></div>
+                <div class="col fk">creation_id <span class="tag fk">FK→creations</span></div>
+                <div class="col">created_at</div>
+                <div class="divider"></div>
+                <div class="col" style="color:#d2a8ff;font-size:.7rem">UNIQUE(user_id, creation_id)</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ GUEST USAGES ════════════════ -->
+        <div class="tbl t-guest" id="t-guest" style="left:1200px;top:900px">
+            <div class="tbl-head">👻 guest_usages</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col">device_id <span class="tag uq">UNIQUE</span></div>
+                <div class="col fk">style_id <span class="tag fk">FK→styles</span></div>
+                <div class="col">created_at</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ COLLECTIONS ════════════════ -->
+        <div class="tbl t-collections" id="t-collections" style="left:50px;top:550px">
+            <div class="tbl-head">📁 collections</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col fk">user_id <span class="tag fk">FK→users</span></div>
+                <div class="col">name <span class="tag nn">NN</span></div>
+                <div class="col">description</div>
+                <div class="col">cover_url</div>
+                <div class="col">created_at</div>
+                <div class="col">updated_at</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ COLLECTION_CREATIONS ════════════════ -->
+        <div class="tbl t-col-creations" id="t-col-creations" style="left:400px;top:620px">
+            <div class="tbl-head">🔗 collection_creations</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col fk">collection_id <span class="tag fk">FK→collections</span></div>
+                <div class="col fk">creation_id <span class="tag fk">FK→creations</span></div>
+                <div class="col">created_at</div>
+                <div class="divider"></div>
+                <div class="col" style="color:#d2a8ff;font-size:.7rem">UNIQUE(collection_id, creation_id)</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ TRANSACTIONS ════════════════ -->
+        <div class="tbl t-transactions" id="t-transactions" style="left:50px;top:950px">
+            <div class="tbl-head">💳 transactions</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col fk">user_id <span class="tag fk">FK→users</span></div>
+                <div class="col">order_id <span class="tag uq">UNIQUE</span></div>
+                <div class="col">payment_id <span class="tag uq">UNIQUE</span></div>
+                <div class="col">signature</div>
+                <div class="col">amount_inr <span class="tag nn">FLOAT</span></div>
+                <div class="col">credits_purchased <span class="tag nn">INT</span></div>
+                <div class="col">status <span class="tag nn">NN</span></div>
+                <div class="col">created_at</div>
+                <div class="col">updated_at</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ CREDIT_TRANSACTIONS ════════════════ -->
+        <div class="tbl t-credit-tx" id="t-credit-tx" style="left:400px;top:950px">
+            <div class="tbl-head">📊 credit_transactions</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col fk">user_id <span class="tag fk">FK→users</span></div>
+                <div class="col">amount <span class="tag nn">INT</span></div>
+                <div class="col">type <span class="tag nn">NN</span></div>
+                <div class="col">description <span class="tag nn">NN</span></div>
+                <div class="col">reference_id</div>
+                <div class="col">balance_after <span class="tag nn">INT</span></div>
+                <div class="col">created_at</div>
+            </div>
+        </div>
+
+        <!-- ════════════════ AD_WATCHES ════════════════ -->
+        <div class="tbl t-ad-watches" id="t-ad-watches" style="left:800px;top:1050px">
+            <div class="tbl-head">📺 ad_watches</div>
+            <div class="tbl-body">
+                <div class="col pk">id <span class="tag pk">PK</span></div>
+                <div class="divider"></div>
+                <div class="col fk">user_id <span class="tag fk">FK→users</span></div>
+                <div class="col">ad_provider</div>
+                <div class="col">ad_unit_id</div>
+                <div class="col">credits_earned</div>
+                <div class="col">watched_date</div>
+                <div class="col">watched_at</div>
+            </div>
+        </div>
+
+    </div><!-- end canvas -->
+
+    <div id="info">
+        <h3>📊 Schema Summary</h3>
+        <div class="stat"><span>Total Tables</span><span>12</span></div>
+        <div class="stat"><span>Database</span><span>PostgreSQL</span></div>
+        <div class="stat"><span>ORM</span><span>SQLAlchemy</span></div>
+        <div class="stat"><span>Relationships</span><span>15+</span></div>
+        <div class="stat"><span>Many-to-Many</span><span>2</span></div>
+        <div class="stat"><span>Self-referential FK</span><span>1 (users)</span></div>
+    </div>
+
+    <script>
+        // Draw connector lines between tables
+        const lines = document.getElementById('lines');
+
+        function getCenter(id, side = 'right') {
+            const el = document.getElementById(id);
+            const l = parseInt(el.style.left);
+            const t = parseInt(el.style.top);
+            const w = el.offsetWidth;
+            const h = el.offsetHeight;
+            if (side === 'right') return [l + w, t + h / 2];
+            if (side === 'left') return [l, t + h / 2];
+            if (side === 'bottom') return [l + w / 2, t + h];
+            if (side === 'top') return [l + w / 2, t];
+        }
+
+        function addLine(x1, y1, x2, y2, color = '#7c3aed', dash = false) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+            line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+            line.setAttribute('stroke', color);
+            line.setAttribute('stroke-width', '1.8');
+            if (dash) line.setAttribute('stroke-dasharray', '6,4');
+            line.setAttribute('opacity', '0.7');
+            lines.appendChild(line);
+            addDot(x2, y2, color);
+        }
+
+        function addDot(x, y, color) {
+            const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', '4');
+            c.setAttribute('fill', color); c.setAttribute('opacity', '0.85');
+            lines.appendChild(c);
+        }
+
+        function path(id1, side1, id2, side2, color, dash) {
+            const [x1, y1] = getCenter(id1, side1);
+            const [x2, y2] = getCenter(id2, side2);
+            // bezier
+            const el = document.getElementById('lines');
+            const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            let dx = Math.abs(x2 - x1) / 2;
+            let d;
+            if (side1 === 'right' && side2 === 'left')
+                d = `M${x1},${y1} C${x1 + dx},${y1} ${x2 - dx},${y2} ${x2},${y2}`;
+            else if (side1 === 'bottom' && side2 === 'top')
+                d = `M${x1},${y1} C${x1},${y1 + 60} ${x2},${y2 - 60} ${x2},${y2}`;
+            else if (side1 === 'left' && side2 === 'right')
+                d = `M${x1},${y1} C${x1 - dx},${y1} ${x2 + dx},${y2} ${x2},${y2}`;
+            else
+                d = `M${x1},${y1} L${x2},${y2}`;
+            pathEl.setAttribute('d', d);
+            pathEl.setAttribute('stroke', color || '#7c3aed');
+            pathEl.setAttribute('stroke-width', '1.8');
+            pathEl.setAttribute('fill', 'none');
+            if (dash) pathEl.setAttribute('stroke-dasharray', '6,4');
+            pathEl.setAttribute('opacity', '0.7');
+            el.appendChild(pathEl);
+            addDot(x2, y2, color || '#7c3aed');
+        }
+
+        window.addEventListener('load', () => {
+            // categories → styles (1:N)
+            path('t-categories', 'right', 't-styles', 'left', '#7ee787');
+            // styles → creations (1:N)
+            path('t-styles', 'bottom', 't-creations', 'top', '#d2a8ff');
+            // users → creations (1:N)
+            path('t-users', 'right', 't-creations', 'left', '#79c0ff');
+            // challenges → creations (1:N)
+            path('t-challenges', 'bottom', 't-creations', 'right', '#ffb347');
+            // creations → challenges.winner (self via FK)
+            path('t-creations', 'right', 't-challenges', 'right', '#ffd700', true);
+            // creations → creation_likes (1:N)
+            path('t-creations', 'right', 't-likes', 'left', '#f78166');
+            // users → creation_likes (1:N)
+            path('t-users', 'right', 't-likes', 'top', '#f78166', true);
+            // styles → guest_usages (1:N)
+            path('t-styles', 'right', 't-guest', 'top', '#56d364', true);
+            // users → collections (1:N)
+            path('t-users', 'bottom', 't-collections', 'top', '#79c0ff');
+            // collections → collection_creations (1:N)
+            path('t-collections', 'right', 't-col-creations', 'left', '#06b6d4', true);
+            // creations → collection_creations (1:N)
+            path('t-creations', 'left', 't-col-creations', 'right', '#06b6d4', true);
+            // users → transactions (1:N)
+            path('t-users', 'bottom', 't-transactions', 'top', '#e3b341');
+            // users → credit_transactions (1:N)
+            path('t-users', 'bottom', 't-credit-tx', 'top', '#d2a8ff');
+            // users → ad_watches (1:N)
+            path('t-users', 'bottom', 't-ad-watches', 'top', '#56d364');
+            // users self-ref (referred_by)
+            const [x, y] = getCenter('t-users', 'top');
+            const sref = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            sref.setAttribute('d', `M${x - 30},${y} C${x - 30},${y - 60} ${x + 30},${y - 60} ${x + 30},${y}`);
+            sref.setAttribute('stroke', '#ffd700'); sref.setAttribute('stroke-width', '1.8');
+            sref.setAttribute('fill', 'none'); sref.setAttribute('opacity', '0.6');
+            sref.setAttribute('stroke-dasharray', '5,3');
+            lines.appendChild(sref);
+            addDot(x + 30, y, '#ffd700');
+        });
+    </script>
+</body>
+
+</html>

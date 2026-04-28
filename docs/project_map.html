@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MagicPic Project Architecture & Flow</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono&display=swap');
+
+        :root {
+            --bg: #030712;
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --accent: #7c3aed;
+            --accent-glow: rgba(124, 58, 237, 0.3);
+            --teal: #06b6d4;
+            --pink: #ec4899;
+            --text-main: #f3f4f6;
+            --text-dim: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image:
+                radial-gradient(circle at 20% 20%, rgba(124, 58, 237, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(6, 182, 212, 0.1) 0%, transparent 40%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 80px;
+        }
+
+        h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #7c3aed, #06b6d4, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 16px;
+            background: rgba(124, 58, 237, 0.2);
+            border: 1px solid var(--accent);
+            border-radius: 100px;
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
+        /* --- MIND MAP SECTION --- */
+        .section-title {
+            text-align: center;
+            font-size: 2rem;
+            margin-bottom: 60px;
+            color: var(--text-main);
+        }
+
+        .mindmap {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 500px;
+            margin-bottom: 100px;
+        }
+
+        .node {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 16px;
+            backdrop-filter: blur(12px);
+            position: absolute;
+            width: 200px;
+            text-align: center;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 2;
+        }
+
+        .node:hover {
+            border-color: var(--accent);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px var(--accent-glow);
+        }
+
+        .node-center {
+            width: 240px;
+            padding: 30px;
+            background: linear-gradient(135deg, var(--accent), #4c1d95);
+            border: none;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .node-title {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .node-desc {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            line-height: 1.3;
+        }
+
+        /* Connecting Lines (Simplified for HTML Demo) */
+        .connector {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(to right, var(--accent), transparent);
+            z-index: 1;
+            transform-origin: left center;
+        }
+
+        /* --- FLOW DIAGRAM --- */
+        .flow-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            position: relative;
+            padding-left: 50px;
+        }
+
+        .flow-container::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            bottom: 20px;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent), var(--teal), var(--pink));
+        }
+
+        .flow-step {
+            position: relative;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 25px;
+            border-radius: 16px;
+            margin-left: 20px;
+        }
+
+        .flow-step::after {
+            content: '';
+            position: absolute;
+            left: -35px;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            background: var(--bg);
+            border: 2px solid var(--accent);
+            border-radius: 50%;
+            transform: translateY(-50%);
+        }
+
+        .step-num {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent);
+            opacity: 0.5;
+            font-weight: 800;
+        }
+
+        .step-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--teal);
+        }
+
+        .step-details {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .detail-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            border: 1px solid var(--border);
+        }
+
+        /* --- FOOTER / PANEL --- */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 100px;
+        }
+
+        .info-card {
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+        }
+
+        .info-card h3 {
+            margin-bottom: 20px;
+            color: var(--accent);
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: #000;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #7ee787;
+        }
+
+        .method {
+            color: #d2a8ff;
+            font-weight: bold;
+        }
+
+        @media (max-width: 900px) {
+            .mindmap {
+                height: 800px;
+                flex-direction: column;
+            }
+
+            .node {
+                position: static;
+                width: 100%;
+                margin: 10px 0;
+            }
+
+            .connector {
+                display: none;
+            }
+
+            h1 {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <span class="badge">Technical Breakdown</span>
+            <h1>MagicPic Ecosystem</h1>
+            <p style="color: var(--text-dim)">A deep dive into the architecture, logic, and generation flow.</p>
+        </header>
+
+        <h2 class="section-title">1. System Mindmap</h2>
+
+        <div class="mindmap">
+            <!-- Center -->
+            <div class="node node-center" style="top: 210px;">
+                <span class="node-title">FastAPI Backend</span>
+                <p class="node-desc">Core REST API Engine</p>
+            </div>
+
+            <!-- Branches -->
+            <div class="node" style="top: 20px; left: 150px;">
+                <span class="node-title">Auth Engine</span>
+                <p class="node-desc">Firebase Google Auth<br>+ JWT Access Tokens</p>
+            </div>
+
+            <div class="node" style="top: 20px; right: 150px;">
+                <span class="node-title">AI Processor</span>
+                <p class="node-desc">Google Gemini 3 Pro<br>Vision Transformers</p>
+            </div>
+
+            <div class="node" style="bottom: 20px; left: 150px;">
+                <span class="node-title">Credit Ledger</span>
+                <p class="node-desc">Daily Reset + Purchases<br>Audit Transactions</p>
+            </div>
+
+            <div class="node" style="bottom: 20px; right: 150px;">
+                <span class="node-title">Cloud Storage</span>
+                <p class="node-desc">Amazon S3<br>Public/Private Images</p>
+            </div>
+
+            <div class="node" style="top: 210px; right: 0px;">
+                <span class="node-title">Payments</span>
+                <p class="node-desc">Razorpay SDK<br>Signature Verification</p>
+            </div>
+
+            <div class="node" style="top: 210px; left: 0px;">
+                <span class="node-title">Database</span>
+                <p class="node-desc">PostgreSQL<br>SQLAlchemy ORM</p>
+            </div>
+        </div>
+
+        <h2 class="section-title">2. Image Generation lifecycle</h2>
+
+        <div class="flow-container">
+
+            <div class="flow-step">
+                <span class="step-num">01</span>
+                <h3 class="step-title">Authentication & Identity</h3>
+                <p style="margin-bottom:15px">The app verifies the user via Firebase (Google) or Email/Password and
+                    issues a Bearer JWT.</p>
+                <div class="step-details">
+                    <div class="detail-item"><span class="method">POST</span> /auth/google</div>
+                    <div class="detail-item"><span class="method">GET</span> /auth/me</div>
+                </div>
+            </div>
+
+            <div class="flow-step">
+                <span class="step-num">02</span>
+                <h3 class="step-title">Credit Check & Refresh</h3>
+                <p style="margin-bottom:15px">Before generation, the system ensures <code>daily_credits</code> are
+                    refreshed and total balance ≥ 1.</p>
+                <div class="step-details">
+                    <div class="detail-item">Priority: Daily > Purchased</div>
+                    <div class="detail-item">Reset: 00:00 UTC</div>
+                </div>
+            </div>
+
+            <div class="flow-step">
+                <span class="step-num">03</span>
+                <h3 class="step-title">Style Selection & Upload</h3>
+                <p style="margin-bottom:15px">User picks a Style (e.g. Ghibli). The original photo is streamed to an S3
+                    "Originals" bucket.</p>
+                <div class="step-details">
+                    <div class="detail-item">Multipart/Form-Data</div>
+                    <div class="detail-item">AWS S3 Signed URLs</div>
+                </div>
+            </div>
+
+            <div class="flow-step">
+                <span class="step-num">04</span>
+                <h3 class="step-title">AI Transformation (Gemini)</h3>
+                <p style="margin-bottom:15px">The backend merges the <code>style_template</code> with user
+                    <code>mood</code> and sends bits to Gemini Pro Vision.
+                </p>
+                <div class="step-details">
+                    <div class="detail-item">Google Generative AI SDK</div>
+                    <div class="detail-item">Prompt Engineering</div>
+                </div>
+            </div>
+
+            <div class="flow-step">
+                <span class="step-num">05</span>
+                <h3 class="step-title">Persistence & Delivery</h3>
+                <p style="margin-bottom:15px">The result is saved to S3. Credits are deducted, and the Creation ID is
+                    returned.</p>
+                <div class="step-details">
+                    <div class="detail-item">DB: creation_id</div>
+                    <div class="detail-item">Feed: is_public check</div>
+                </div>
+            </div>
+
+            <div class="flow-step">
+                <span class="step-num">06</span>
+                <h3 class="step-title">Secondary Economy: AdMob Rewards</h3>
+                <p style="margin-bottom:15px">Users can watch videos to earn free credits. The backend enforces strict
+                    daily limits (e.g., 5 ads/day).</p>
+                <div class="step-details">
+                    <div class="detail-item"><span class="method">POST</span> /rewards/admob</div>
+                    <div class="detail-item">Audit: credit_transactions</div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="info-grid">
+            <div class="info-card">
+                <h3>🔐 Firebase Google Logic</h3>
+                <p>We don't trust client-side claims. The app sends a <code>tokens.google.id_token</code>. Our backend
+                    verifies the <strong>Audience (aud)</strong> against our Android Client ID to prevent token spoofing
+                    from web apps or other projects.</p>
+            </div>
+            <div class="info-card">
+                <h3>💳 Credit Spending Rule</h3>
+                <p>Economy logic: Daily free credits are ephemeral. We use <code>min(daily_credits, cost)</code> first.
+                    This incentivizes users to use the app daily while preserving their paid balance.</p>
+            </div>
+            <div class="info-card">
+                <h3>🚀 Performance</h3>
+                <p>FastAPI handles async S3 uploads while the Gemini AI processes in a separate thread, ensuring the API
+                    doesn't hang under high concurrent load.</p>
+            </div>
+            <div class="info-card">
+                <h3>📺 AdMob Architecture</h3>
+                <p>The system uses a <strong>Rewarded Ad</strong> flow:</p>
+                <ul style="margin-left: 20px; font-size: 0.9rem; color: var(--text-dim)">
+                    <li><strong>Mobile:</strong> Displays ad via AdMob SDK.</li>
+                    <li><strong>Callback:</strong> Upon completion, <code>onUserEarnedReward</code> triggers a backend
+                        hit.</li>
+                    <li><strong>Backend:</strong> Reads <code>DAILY_AD_WATCH_LIMIT</code> from DB to prevent
+                        botting/farming.</li>
+                    <li><strong>Ledger:</strong> Atomically updates user balance and writes to <code>ad_watches</code>
+                        for audit.</li>
+                </ul>
+            </div>
+        </div>
+
+        <footer
+            style="text-align: center; margin-top: 80px; padding-bottom: 40px; color: var(--text-dim); font-size: 0.8rem;">
+            MagicPic Documentation Visualization &copy; 2026<br>
+            Built with FastAPI, Google Gemini, and AWS.
+        </footer>
+    </div>
+
+</body>
+
+</html>
