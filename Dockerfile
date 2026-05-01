@@ -22,8 +22,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Expose the port the app runs on
-# Default FastAPI port is usually 8000
 EXPOSE 8000
 
-# Command to run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Make the entrypoint script executable
+RUN chmod +x /app/scripts/entrypoint.sh
+
+# Entrypoint: runs `alembic upgrade head` then starts uvicorn.
+# Migrations are idempotent — if already applied, this is a no-op.
+ENTRYPOINT ["/app/scripts/entrypoint.sh"]

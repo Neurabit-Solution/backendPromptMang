@@ -10,18 +10,7 @@ from app.api.challenges import router as challenges_router
 from app.api.rewards import router as rewards_router
 from app.api.collections import router as collections_router
 from app.api.payments import router as payments_router
-from app.core.database import engine, Base
-
-# Import all models so SQLAlchemy registers them before create_all()
-from app.models import user  # noqa: F401
-from app.models import style  # noqa: F401  (Category, Style, Creation)
-from app.models import rewards  # noqa: F401
-from app.models import payment # noqa: F401
-
 from app.core.config import settings
-
-# Create all database tables
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="MagicPic Backend", version="1.0.0")
 
